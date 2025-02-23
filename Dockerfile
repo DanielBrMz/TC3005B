@@ -1,13 +1,18 @@
 FROM openjdk:17-jdk-slim
 
+# Use consistent student ID in all paths
 WORKDIR /oci-microservice-a01254805
 
-COPY /target/*.jar oci-microservice-a01254805.jar
+# Copy JAR file (relative path, no leading slash)
+COPY target/*.jar oci-microservice-a01254805.jar
 
-COPY /src/main/resources/Wallet_javadev /oci-microservice-a01254805/Wallet_javadev
+# Copy Oracle Wallet (relative path)
+COPY src/main/resources/Wallet_javadev ./Wallet_javadev
 
-ENV TNS_ADMIN=/oci-microservice-a0125408/Wallet_javadev 
+# Fix TNS_ADMIN path to match WORKDIR
+ENV TNS_ADMIN=/oci-microservice-a01254805/Wallet_javadev
 
 EXPOSE 8080
 
-ENTRYPOINT [ "java", "-jar", "oci-microservice-a0125408.jar" ]
+# Match the JAR filename from COPY command
+ENTRYPOINT ["java", "-jar", "oci-microservice-a01254805.jar"]
