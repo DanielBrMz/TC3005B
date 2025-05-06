@@ -1,3 +1,10 @@
+.game-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  height: 100%;
+}
+
 .game-card {
   background-color: rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
@@ -92,15 +99,16 @@
   .game-card-image {
     height: 140px;
   }
-  
+
   .game-title {
     font-size: 0.9rem;
   }
-  
-  .game-release-date, .game-platforms {
+
+  .game-release-date,
+  .game-platforms {
     font-size: 0.7rem;
   }
-  
+
   .game-tag {
     font-size: 0.6rem;
     padding: 0.15rem 0.3rem;
