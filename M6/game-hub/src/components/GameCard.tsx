@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import type { Game } from "../types/game";
 import "./GameCard.css";
 
@@ -23,33 +24,35 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
     : "Unknown platform";
 
   return (
-    <div className="game-card">
-      <div className="game-card-image">
-        <img
-          src={
-            game.background_image ||
-            "https://via.placeholder.com/300x150?text=No+Image"
-          }
-          alt={game.name}
-        />
-        <div className="game-rating">★ {game.rating.toFixed(1)}</div>
-      </div>
-      <div className="game-card-content">
-        <h3 className="game-title">{game.name}</h3>
-        <div className="game-release-date">
-          {game.released ? formatDate(game.released) : "Release date unknown"}
+    <Link to={`/game/${game.id}`} className="game-card-link">
+      <div className="game-card">
+        <div className="game-card-image">
+          <img
+            src={
+              game.background_image ||
+              "https://via.placeholder.com/300x150?text=No+Image"
+            }
+            alt={game.name}
+          />
+          <div className="game-rating">★ {game.rating.toFixed(1)}</div>
         </div>
-        <div className="game-platforms">{platforms}</div>
-        <div className="game-tags">
-          {game.genres &&
-            game.genres.slice(0, 3).map((genre) => (
-              <span key={genre.id} className="game-tag">
-                {genre.name}
-              </span>
-            ))}
+        <div className="game-card-content">
+          <h3 className="game-title">{game.name}</h3>
+          <div className="game-release-date">
+            {game.released ? formatDate(game.released) : "Release date unknown"}
+          </div>
+          <div className="game-platforms">{platforms}</div>
+          <div className="game-tags">
+            {game.genres &&
+              game.genres.slice(0, 3).map((genre) => (
+                <span key={genre.id} className="game-tag">
+                  {genre.name}
+                </span>
+              ))}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
