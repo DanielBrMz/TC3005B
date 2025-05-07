@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import './Navbar.css';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import "./Navbar.css";
 
 const Navbar: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  };
+
   return (
     <div className="navbar-container">
       {/* Top navigation bar */}
@@ -14,10 +23,18 @@ const Navbar: React.FC = () => {
             <Link to="/">Game Hub</Link>
           </div>
           <div className="global-links">
-            <Link to="/" className="global-link">Store</Link>
-            <Link to="/library" className="global-link">Library</Link>
-            <Link to="/community" className="global-link">Community</Link>
-            <Link to="/profile" className="global-link">Profile</Link>
+            <Link to="/" className="global-link">
+              Store
+            </Link>
+            <Link to="/library" className="global-link">
+              Library
+            </Link>
+            <Link to="/community" className="global-link">
+              Community
+            </Link>
+            <Link to="/profile" className="global-link">
+              Profile
+            </Link>
           </div>
         </div>
         <div className="navbar-actions">
@@ -30,27 +47,41 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </nav>
-      
+
       {/* Store navigation */}
       <nav className="navbar-store">
         <div className="store-nav-links">
-          <Link to="/" className="store-link">Your Store</Link>
-          <Link to="/new" className="store-link">New & Noteworthy</Link>
-          <Link to="/categories" className="store-link">Categories</Link>
-          <Link to="/points" className="store-link">Points Shop</Link>
-          <Link to="/news" className="store-link">News</Link>
-          <Link to="/labs" className="store-link">Labs</Link>
+          <Link to="/" className="store-link">
+            Your Store
+          </Link>
+          <Link to="/new" className="store-link">
+            New & Noteworthy
+          </Link>
+          <Link to="/categories" className="store-link">
+            Categories
+          </Link>
+          <Link to="/points" className="store-link">
+            Points Shop
+          </Link>
+          <Link to="/news" className="store-link">
+            News
+          </Link>
+          <Link to="/labs" className="store-link">
+            Labs
+          </Link>
         </div>
-        <div className="search-container">
-          <input 
+        <form className="search-container" onSubmit={handleSearch}>
+          <input
             type="text"
-            placeholder="search" 
+            placeholder="search games..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
           />
-          <button className="search-button">🔍</button>
-        </div>
+          <button type="submit" className="search-button">
+            🔍
+          </button>
+        </form>
       </nav>
     </div>
   );

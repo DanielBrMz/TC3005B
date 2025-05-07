@@ -72,3 +72,17 @@ export interface GamesResponse {
   previous: string | null;
   results: Game[];
 }
+
+export interface GenresResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Genre[];
+}
+
+export interface PlatformsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Platform[];
+}
