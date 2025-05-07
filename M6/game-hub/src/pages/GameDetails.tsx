@@ -13,7 +13,7 @@ const GameDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [game, setGame] = useState<GameDetail | null>(null);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
-  const [relatedGames, setRelatedGames] = useState<any[]>([]);
+  const [relatedGames, setRelatedGames] = useState<GameDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
