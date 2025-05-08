@@ -378,3 +378,97 @@
     gap: 1.5rem;
   }
 }
+
+.similar-games-section {
+  margin-bottom: 2rem;
+}
+
+.similar-games-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.refresh-similar-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #1a9fff 0%, #66c0f4 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-similar-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 159, 255, 0.3);
+}
+
+.refresh-similar-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.similar-games-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #66c0f4;
+  font-size: 1rem;
+}
+
+.similar-games-loading .spinning {
+  margin-bottom: 1rem;
+}
+
+.similarity-explanation {
+  background-color: rgba(26, 159, 255, 0.1);
+  border: 1px solid rgba(26, 159, 255, 0.2);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  color: #c7d5e0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.similar-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.no-similar-games {
+  text-align: center;
+  padding: 2rem;
+  color: #8f98a0;
+  background-color: rgba(143, 152, 160, 0.05);
+  border-radius: 6px;
+  border: 1px solid #2a475e;
+}
+
+
+/* Mobile responsiveness for similar games section */
+@media (max-width: 768px) {
+  .similar-games-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .refresh-similar-button {
+    justify-content: center;
+  }
+  
+  .similar-games-grid {
+    grid-template-columns: 1fr;
+  }
+}
