@@ -15,13 +15,11 @@
 }
 
 .loading-spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border-left-color: #1a9fff;
-  animation: spin 1s linear infinite;
   margin-bottom: 1rem;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -69,20 +67,27 @@
 .game-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
   font-size: 0.9rem;
+}
+
+.meta-item svg {
+  color: #66c0f4;
+  flex-shrink: 0;
 }
 
 .meta-label {
   color: #8f98a0;
-  width: 120px;
+  width: 100px;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .meta-value {
@@ -96,8 +101,9 @@
 }
 
 .rating-stars {
+  display: flex;
   color: #ffa500;
-  font-size: 1.2rem;
+  gap: 1px;
 }
 
 .rating-text {
@@ -106,7 +112,8 @@
   color: #66c0f4;
 }
 
-.platforms-list {
+.platforms-list,
+.genres-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -120,12 +127,6 @@
   font-size: 0.8rem;
 }
 
-.genres-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 .genre-tag {
   background-color: #3a6a8c;
   color: #c7d5e0;
@@ -134,10 +135,25 @@
   font-size: 0.8rem;
 }
 
+.price-item {
+  background: linear-gradient(135deg, rgba(26, 159, 255, 0.1) 0%, rgba(102, 192, 244, 0.1) 100%);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(26, 159, 255, 0.2);
+}
+
+.game-price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #66c0f4;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .game-actions {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
 .action-button {
@@ -148,15 +164,22 @@
   font-size: 0.9rem;
   font-weight: bold;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  justify-content: center;
 }
 
 .primary-button {
-  background-color: #1a9fff;
+  background: linear-gradient(135deg, #1a9fff 0%, #66c0f4 100%);
   color: white;
+  box-shadow: 0 2px 4px rgba(26, 159, 255, 0.3);
 }
 
 .primary-button:hover {
-  background-color: #66c0f4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(26, 159, 255, 0.4);
 }
 
 .secondary-button {
@@ -167,6 +190,22 @@
 
 .secondary-button:hover {
   background-color: rgba(26, 159, 255, 0.1);
+}
+
+.secondary-button.wishlisted {
+  background-color: #1a9fff;
+  color: white;
+}
+
+.tertiary-button {
+  background-color: #2a475e;
+  color: #c7d5e0;
+  border: 1px solid #3a6a8c;
+}
+
+.tertiary-button:hover {
+  background-color: #3a6a8c;
+  color: #ffffff;
 }
 
 /* Game description section */
@@ -183,6 +222,9 @@
   margin-bottom: 1rem;
   border-bottom: 2px solid #1a9fff;
   padding-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .description-text {
@@ -236,6 +278,9 @@
   color: #66c0f4;
   margin-bottom: 1rem;
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .requirement-item {
@@ -284,6 +329,7 @@
 .back-button:hover {
   border-color: #c7d5e0;
   color: #c7d5e0;
+  background-color: rgba(199, 213, 224, 0.1);
 }
 
 /* Mobile responsiveness */
@@ -316,10 +362,19 @@
   .meta-item {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
   }
   
   .meta-label {
     width: auto;
-    margin-bottom: 0.2rem;
+  }
+
+  .platforms-list,
+  .genres-list {
+    width: 100%;
+  }
+
+  .game-meta {
+    gap: 1.5rem;
   }
 }
