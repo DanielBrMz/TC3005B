@@ -11,11 +11,12 @@ import {
   ShoppingCart,
   ExternalLink,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import {
   getGameById,
   getGameScreenshots,
-  getRelatedGames,
+  getSimilarGames,
 } from "../services/gameService";
 import type { GameDetail, Screenshot, Game } from "../types/game";
 import GameCard from "../components/GameCard";
@@ -25,10 +26,34 @@ const GameDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [game, setGame] = useState<GameDetail | null>(null);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
-  const [relatedGames, setRelatedGames] = useState<Game[]>([]);
+  const [similarGames, setSimilarGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [similarGamesLoading, setSimilarGamesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
+
+  // Function to fetch similar games independently
+  const fetchSimilarGames = async (gameData: GameDetail) => {
+    setSimilarGamesLoading(true);
+    try {
+      console.log("Fetching similar games for:", gameData.name);
+      const similarData = await getSimilarGames(gameData);
+      setSimilarGames(similarData);
+      console.log(`Found ${similarData.length} similar games`);
+    } catch (error) {
+      console.error("Error fetching similar games:", error);
+      // Don't show error to user for similar games, just log it
+    } finally {
+      setSimilarGamesLoading(false);
+    }
+  };
+
+  // Function to refresh similar games manually
+  const refreshSimilarGames = () => {
+    if (game) {
+      fetchSimilarGames(game);
+    }
+  };
 
   useEffect(() => {
     const fetchGameDetails = async () => {
@@ -38,27 +63,24 @@ const GameDetails: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        console.log("Fetching game details for ID:", id);
+
         // Fetch main game details
         const gameData = await getGameById(parseInt(id));
         setGame(gameData);
 
-        // Fetch screenshots
-        try {
-          const screenshotsData = await getGameScreenshots(parseInt(id));
-          setScreenshots(screenshotsData.results || []);
-        } catch (screenshotError) {
-          console.warn("Could not fetch screenshots:", screenshotError);
-        }
+        // Fetch screenshots in parallel (non-blocking)
+        getGameScreenshots(parseInt(id))
+          .then((screenshotsData) => {
+            setScreenshots(screenshotsData.results || []);
+          })
+          .catch((screenshotError) => {
+            console.warn("Could not fetch screenshots:", screenshotError);
+          });
 
-        // Fetch related games (games with similar genres)
-        if (gameData.genres && gameData.genres.length > 0) {
-          try {
-            const relatedData = await getRelatedGames(gameData.genres[0].slug);
-            setRelatedGames(relatedData.results.slice(0, 4));
-          } catch (relatedError) {
-            console.warn("Could not fetch related games:", relatedError);
-          }
-        }
+        // Fetch similar games using our new intelligent system
+        // This runs separately so it doesn't block the main game details loading
+        fetchSimilarGames(gameData);
       } catch (err) {
         setError("Failed to load game details. Please try again later.");
         console.error("Error fetching game details:", err);
@@ -68,7 +90,7 @@ const GameDetails: React.FC = () => {
     };
 
     fetchGameDetails();
-  }, [id]);
+  }, [id]); // Re-run when game ID changes
 
   // Helper function to render star rating
   const renderStarRating = (rating: number) => {
@@ -359,17 +381,54 @@ const GameDetails: React.FC = () => {
         </div>
       </div>
 
-      {/* Related Games */}
-      {relatedGames.length > 0 && (
-        <div className="related-games-section">
-          <h2 className="section-title">Similar Games</h2>
-          <div className="related-games-grid">
-            {relatedGames.map((relatedGame) => (
-              <GameCard key={relatedGame.id} game={relatedGame} />
-            ))}
-          </div>
+      {/* Similar Games - Now with intelligent matching */}
+      <div className="similar-games-section">
+        <div className="similar-games-header">
+          <h2 className="section-title">Games Similar to {game.name}</h2>
+          <button
+            className="refresh-similar-button"
+            onClick={refreshSimilarGames}
+            disabled={similarGamesLoading}
+            title="Find more similar games"
+          >
+            {similarGamesLoading ? (
+              <Loader2 size={16} className="spinning" />
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            Refresh
+          </button>
         </div>
-      )}
+
+        {similarGamesLoading ? (
+          <div className="similar-games-loading">
+            <Loader2 size={24} className="spinning" />
+            <p>Finding games similar to {game.name}...</p>
+          </div>
+        ) : similarGames.length > 0 ? (
+          <>
+            <div className="similarity-explanation">
+              <p>
+                These games share similar genres, developers, themes, or release
+                timeframes with {game.name}. Our matching algorithm considers
+                multiple factors to find truly comparable gaming experiences.
+              </p>
+            </div>
+            <div className="similar-games-grid">
+              {similarGames.map((similarGame) => (
+                <GameCard key={similarGame.id} game={similarGame} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="no-similar-games">
+            <p>
+              No similar games found. This might be a unique game or our
+              similarity algorithm needs more data to work with.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
