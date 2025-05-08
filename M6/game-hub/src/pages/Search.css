@@ -67,6 +67,9 @@
   cursor: pointer;
   transition: background-color 0.2s;
   min-width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-button:hover:not(:disabled) {
@@ -76,6 +79,16 @@
 .search-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Spinning animation for loading icons */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Filter Controls */
@@ -99,6 +112,9 @@
   border-radius: 3px;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .filter-toggle-button:hover {
@@ -114,6 +130,9 @@
   border-radius: 3px;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .clear-filters-button:hover {
@@ -147,6 +166,18 @@
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   border: 1px solid #2a475e;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .filter-section {
@@ -194,6 +225,7 @@
   background-color: transparent;
   cursor: pointer;
   position: relative;
+  transition: all 0.2s;
 }
 
 .filter-option input[type="checkbox"]:checked {
@@ -223,6 +255,12 @@
   border-radius: 4px;
   padding: 1rem;
   margin-bottom: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .active-filters h4 {
@@ -246,6 +284,18 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .remove-filter {
@@ -253,14 +303,17 @@
   border: none;
   color: white;
   cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0;
-  margin-left: 0.2rem;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
 }
 
 .remove-filter:hover {
-  color: #ffcccc;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Loading and Error States */
@@ -275,18 +328,7 @@
 }
 
 .loading-spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border-left-color: #1a9fff;
-  animation: spin 1s linear infinite;
   margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 .error {
@@ -307,6 +349,11 @@
   border: 1px solid #2a475e;
   border-radius: 4px;
   margin: 1rem 0;
+}
+
+.no-results-icon {
+  opacity: 0.5;
+  margin-bottom: 1rem;
 }
 
 .no-results h3 {
@@ -352,6 +399,9 @@
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .load-more-button:hover:not(:disabled) {
