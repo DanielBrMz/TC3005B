@@ -1,11 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
+  ArrowLeft,
+  Star,
+  Calendar,
+  Monitor,
+  Users,
+  Trophy,
+  Heart,
+  ShoppingCart,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
+import {
   getGameById,
   getGameScreenshots,
   getRelatedGames,
 } from "../services/gameService";
-import type { GameDetail, Screenshot } from "../types/game";
+import type { GameDetail, Screenshot, Game } from "../types/game";
 import GameCard from "../components/GameCard";
 import "./GameDetails.css";
 
@@ -13,9 +25,10 @@ const GameDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [game, setGame] = useState<GameDetail | null>(null);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
-  const [relatedGames, setRelatedGames] = useState<GameDetail[]>([]);
+  const [relatedGames, setRelatedGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     const fetchGameDetails = async () => {
@@ -65,9 +78,19 @@ const GameDetails: React.FC = () => {
 
     return (
       <div className="rating-stars">
-        {"★".repeat(fullStars)}
-        {hasHalfStar && "☆"}
-        {"☆".repeat(emptyStars)}
+        {Array(fullStars)
+          .fill(0)
+          .map((_, i) => (
+            <Star key={`full-${i}`} size={16} fill="currentColor" />
+          ))}
+        {hasHalfStar && (
+          <Star key="half" size={16} fill="currentColor" opacity={0.5} />
+        )}
+        {Array(emptyStars)
+          .fill(0)
+          .map((_, i) => (
+            <Star key={`empty-${i}`} size={16} />
+          ))}
       </div>
     );
   };
@@ -89,11 +112,17 @@ const GameDetails: React.FC = () => {
     return tmp.textContent || tmp.innerText || "";
   };
 
+  // Generate random price for demonstration
+  const generatePrice = () => {
+    const prices = [9.99, 14.99, 19.99, 24.99, 29.99, 39.99, 49.99, 59.99];
+    return prices[Math.floor(Math.random() * prices.length)];
+  };
+
   if (loading) {
     return (
       <div className="game-details-page">
         <div className="loading-container">
-          <div className="loading-spinner"></div>
+          <Loader2 size={36} className="loading-spinner spinning" />
           <p>Loading game details...</p>
         </div>
       </div>
@@ -104,17 +133,21 @@ const GameDetails: React.FC = () => {
     return (
       <div className="game-details-page">
         <Link to="/" className="back-button">
-          ← Back to Home
+          <ArrowLeft size={16} />
+          Back to Home
         </Link>
         <div className="error-message">{error || "Game not found"}</div>
       </div>
     );
   }
 
+  const gamePrice = generatePrice();
+
   return (
     <div className="game-details-page">
       <Link to="/" className="back-button">
-        ← Back to Home
+        <ArrowLeft size={16} />
+        Back to Home
       </Link>
 
       {/* Game Header */}
@@ -133,6 +166,7 @@ const GameDetails: React.FC = () => {
 
           <div className="game-meta">
             <div className="meta-item">
+              <Calendar size={16} />
               <span className="meta-label">Released:</span>
               <span className="meta-value">
                 {game.released
@@ -142,6 +176,7 @@ const GameDetails: React.FC = () => {
             </div>
 
             <div className="meta-item">
+              <Star size={16} />
               <span className="meta-label">Rating:</span>
               <div className="rating-display">
                 {renderStarRating(game.rating)}
@@ -150,6 +185,7 @@ const GameDetails: React.FC = () => {
             </div>
 
             <div className="meta-item">
+              <Monitor size={16} />
               <span className="meta-label">Platforms:</span>
               <div className="platforms-list">
                 {game.platforms?.map((platform) => (
@@ -161,6 +197,7 @@ const GameDetails: React.FC = () => {
             </div>
 
             <div className="meta-item">
+              <Trophy size={16} />
               <span className="meta-label">Genres:</span>
               <div className="genres-list">
                 {game.genres?.map((genre) => (
@@ -173,6 +210,7 @@ const GameDetails: React.FC = () => {
 
             {game.developers && game.developers.length > 0 && (
               <div className="meta-item">
+                <Users size={16} />
                 <span className="meta-label">Developer:</span>
                 <span className="meta-value">
                   {game.developers.map((dev) => dev.name).join(", ")}
@@ -182,21 +220,47 @@ const GameDetails: React.FC = () => {
 
             {game.publishers && game.publishers.length > 0 && (
               <div className="meta-item">
+                <Users size={16} />
                 <span className="meta-label">Publisher:</span>
                 <span className="meta-value">
                   {game.publishers.map((pub) => pub.name).join(", ")}
                 </span>
               </div>
             )}
+
+            {/* Price Display */}
+            <div className="meta-item price-item">
+              <ShoppingCart size={16} />
+              <span className="meta-label">Price:</span>
+              <span className="game-price">${gamePrice}</span>
+            </div>
           </div>
 
           <div className="game-actions">
             <button className="action-button primary-button">
-              Add to Library
+              <ShoppingCart size={16} />
+              Add to Cart
             </button>
-            <button className="action-button secondary-button">
-              Add to Wishlist
+            <button
+              className={`action-button secondary-button ${
+                isWishlisted ? "wishlisted" : ""
+              }`}
+              onClick={() => setIsWishlisted(!isWishlisted)}
+            >
+              <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
+              {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
             </button>
+            {game.website && (
+              <a
+                href={game.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="action-button tertiary-button"
+              >
+                <ExternalLink size={16} />
+                Official Site
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -230,7 +294,10 @@ const GameDetails: React.FC = () => {
         <h2 className="section-title">System Requirements</h2>
         <div className="requirements-grid">
           <div className="requirement-category">
-            <h4>Minimum Requirements</h4>
+            <h4>
+              <Monitor size={20} />
+              Minimum Requirements
+            </h4>
             <div className="requirement-item">
               <span className="requirement-label">OS:</span>
               <span className="requirement-value">Windows 10 64-bit</span>
@@ -258,7 +325,10 @@ const GameDetails: React.FC = () => {
           </div>
 
           <div className="requirement-category">
-            <h4>Recommended Requirements</h4>
+            <h4>
+              <Trophy size={20} />
+              Recommended Requirements
+            </h4>
             <div className="requirement-item">
               <span className="requirement-label">OS:</span>
               <span className="requirement-value">Windows 11 64-bit</span>
