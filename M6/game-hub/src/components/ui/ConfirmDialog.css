@@ -1,0 +1,102 @@
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.confirm-dialog {
+  background-color: #1f3747;
+  border-radius: 8px;
+  border: 1px solid #2a475e;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirm-dialog-header {
+  position: relative;
+  padding: 1.5rem 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.confirm-dialog-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.confirm-dialog-icon.warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.1) 100%);
+  color: #ffc107;
+  border: 2px solid rgba(255, 193, 7, 0.3);
+}
+
+.confirm-dialog-icon.danger {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.2) 0%, rgba(231, 76, 60, 0.1) 100%);
+  color: #e74c3c;
+  border: 2px solid rgba(231, 76, 60, 0.3);
+}
+
+.confirm-dialog-icon.info {
+  background: linear-gradient(135deg, rgba(26, 159, 255, 0.2) 0%, rgba(26, 159, 255, 0.1) 100%);
+  color: #1a9fff;
+  border: 2px solid rgba(26, 159, 255, 0.3);
+}
+
+.confirm-dialog-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #8f98a0;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-dialog-close:hover:not(:disabled) {
+  color: #c7d5e0;
+  background-color: rgba(143, 152, 160, 0.1);
+}
+
+.confirm-dialog-close:
