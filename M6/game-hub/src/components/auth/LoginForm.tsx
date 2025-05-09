@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import './LoginForm.css';
+import GoogleIcon from './GoogleIcon';
 
 const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -44,8 +45,8 @@ const LoginForm: React.FC = () => {
       setLoading(true);
       setErrors({});
       await login(formData.email, formData.password);
-    } catch (error: any) {
-      setErrors({ general: error.message });
+    } catch (error: unknown) {
+      setErrors({ general: error instanceof Error ? error.message : 'An error occurred' });
     } finally {
       setLoading(false);
     }
@@ -56,8 +57,8 @@ const LoginForm: React.FC = () => {
       setGoogleLoading(true);
       setErrors({});
       await loginWithGoogle();
-    } catch (error: any) {
-      setErrors({ general: error.message });
+    } catch (error: unknown) {
+      setErrors({ general: error instanceof Error ? error.message : 'An error occurred' });
     } finally {
       setGoogleLoading(false);
     }
@@ -191,7 +192,7 @@ const LoginForm: React.FC = () => {
             </>
           ) : (
             <>
-              <GoogleIcon />
+              <GoogleIcon/>
               Continue with Google
             </>
           )}
