@@ -1,3 +1,9 @@
+/*
+ * Java Paint panel with enhanced features
+ * - Supports Pencil, Rectangle, Oval, Eraser, Fill tools
+ * - Converts vector graphics to image buffer for eraser and fill
+ */
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -12,6 +18,7 @@ import java.awt.geom.CubicCurve2D;
 public class PaintPanel extends JPanel implements ComponentListener {
     private Color currentColor = Color.BLACK;
     private String currentTool = "Pencil";
+    private boolean hasBeenConverted = false; // Track if we've converted to image buffer
 
     // For storing the image
     private BufferedImage image;
@@ -44,15 +51,19 @@ public class PaintPanel extends JPanel implements ComponentListener {
                 if (currentTool.equals("Fill")) {
                     // Perform flood fill
                     floodFill(e.getPoint());
-                } else if (currentTool.equals("Pencil") || currentTool.equals("Eraser")) {
-                    // Create a new line
+                } else if (currentTool.equals("Eraser")) {
+                    // For eraser, convert to image buffer only on first use
+                    if (!hasBeenConverted) {
+                        convertToImageBuffer();
+                        hasBeenConverted = true;
+                    }
+                    eraseAtPoint(e.getPoint());
+                } else if (currentTool.equals("Pencil")) {
+                    // Create a new line for pencil
                     ArrayList<Point> newLine = new ArrayList<>();
                     newLine.add(startPoint);
                     lines.add(newLine);
-
-                    // Add color (white for eraser, current color for pencil)
-                    Color lineColor = currentTool.equals("Eraser") ? getBackground() : currentColor;
-                    lineColors.add(lineColor);
+                    lineColors.add(currentColor);
                 }
             }
 
@@ -60,7 +71,13 @@ public class PaintPanel extends JPanel implements ComponentListener {
             public void mouseDragged(MouseEvent e) {
                 endPoint = e.getPoint();
 
-                if (currentTool.equals("Pencil") || currentTool.equals("Eraser")) {
+                if (currentTool.equals("Eraser")) {
+                    // Erase along the drag path with line drawing for smoother erasing
+                    if (startPoint != null) {
+                        eraseLineFromTo(startPoint, endPoint);
+                        startPoint = endPoint; // Update start point for continuous erasing
+                    }
+                } else if (currentTool.equals("Pencil")) {
                     // Add point to the current line
                     lines.get(lines.size() - 1).add(endPoint);
                 }
@@ -73,7 +90,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
                 endPoint = e.getPoint();
 
                 if (!currentTool.equals("Pencil") && !currentTool.equals("Eraser") && !currentTool.equals("Fill")) {
-                    // Create a shape
+                    // Create a shape (only for Rectangle and Oval tools, not Eraser)
                     Shape newShape = createShape();
                     if (newShape != null) {
                         shapes.add(newShape);
@@ -93,24 +110,106 @@ public class PaintPanel extends JPanel implements ComponentListener {
     }
 
     /**
+     * Converts all current vector graphics to the image buffer and clears vector arrays
+     */
+    private void convertToImageBuffer() {
+        // Create or update the image buffer
+        if (image == null || image.getWidth() != getWidth() || image.getHeight() != getHeight()) {
+            image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+        }
+        
+        // Draw all current content to the image
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        paintAllToGraphics(g2);
+        g2.dispose();
+        
+        // Clear the vector graphics arrays since they're now in the image buffer
+        lines.clear();
+        lineColors.clear();
+        shapes.clear();
+        shapeColors.clear();
+        
+        // Start fresh for new drawings
+        lines.add(new ArrayList<>());
+        lineColors.add(currentColor);
+    }
+
+    /**
+     * Ensures that the image buffer exists and contains current content (for flood fill)
+     */
+    private void ensureImageExists() {
+        if (image == null || image.getWidth() != getWidth() || image.getHeight() != getHeight()) {
+            // Create an image the size of the panel
+            image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+        }
+        
+        // Always update the image with current content before flood fill
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        paintAllToGraphics(g2);
+        g2.dispose();
+    }
+
+    /**
+     * Erases content at the specified point with a brush-like effect
+     */
+    private void eraseAtPoint(Point point) {
+        if (image == null) return;
+        
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Set up eraser brush - white color with a circular brush
+        g2.setColor(Color.WHITE);
+        
+        // Erase by drawing a small circle at the point
+        int brushSize = 12;
+        g2.fillOval(point.x - brushSize/2, point.y - brushSize/2, brushSize, brushSize);
+        
+        g2.dispose();
+    }
+
+    /**
+     * Erases content along a line from point A to point B for smooth erasing
+     */
+    private void eraseLineFromTo(Point from, Point to) {
+        if (image == null) return;
+        
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Set up eraser brush
+        g2.setColor(Color.WHITE);
+        g2.setStroke(new BasicStroke(12.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        
+        // Draw a white line to erase
+        g2.drawLine(from.x, from.y, to.x, to.y);
+        
+        g2.dispose();
+    }
+    /**
      * Clears all drawn content from the canvas
      */
     public void clearAll() {
         // Clear all lines
         lines.clear();
         lineColors.clear();
-
+        
         // Clear all shapes
         shapes.clear();
         shapeColors.clear();
-
+        
         // Clear the image buffer
         image = null;
-
+        
+        // Reset conversion flag
+        hasBeenConverted = false;
+        
         // Create a new empty line list
         lines.add(new ArrayList<>());
         lineColors.add(currentColor);
-
+        
         // Repaint the panel
         repaint();
     }
@@ -120,22 +219,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
      */
     private void floodFill(Point point) {
         // First, we need to ensure we have an image to work with
-        if (image == null) {
-            // Create an image the size of the panel
-            image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2 = image.createGraphics();
-            g2.setColor(Color.WHITE);
-            g2.fillRect(0, 0, getWidth(), getHeight());
-
-            // Draw all current content to the image
-            paintAll(g2);
-            g2.dispose();
-        } else {
-            // Update the image with current content
-            Graphics2D g2 = image.createGraphics();
-            paintAll(g2);
-            g2.dispose();
-        }
+        ensureImageExists();
 
         // Safety check for point being within bounds
         if (point.x < 0 || point.x >= image.getWidth() || point.y < 0 || point.y >= image.getHeight()) {
@@ -182,7 +266,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
     /**
      * Paints all content to the given graphics context
      */
-    private void paintAll(Graphics2D g2d) {
+    private void paintAllToGraphics(Graphics2D g2d) {
         // Clear with white background
         g2d.setColor(Color.WHITE);
         g2d.fillRect(0, 0, getWidth(), getHeight());
@@ -219,7 +303,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
             Graphics2D g2 = image.createGraphics();
             g2.setColor(Color.WHITE);
             g2.fillRect(0, 0, getWidth(), getHeight());
-            paintAll(g2);
+            paintAllToGraphics(g2);
             g2.dispose();
         }
 
@@ -330,16 +414,19 @@ public class PaintPanel extends JPanel implements ComponentListener {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
-
+        
         // Enable antialiasing for smoother drawing
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // If we have an image from flood fill or emoji, draw it first
+        // If we have an image from eraser, flood fill, or emoji operations, draw it
         if (image != null) {
             g2d.drawImage(image, 0, 0, null);
+        } else {
+            // If no image exists, draw everything normally using vector graphics
+            paintAllToGraphics(g2d);
         }
 
-        // Draw all completed lines
+        // ALWAYS draw pencil lines on top for real-time drawing (regardless of image buffer)
         for (int i = 0; i < lines.size(); i++) {
             ArrayList<Point> line = lines.get(i);
             if (line.size() > 1) {
@@ -353,14 +440,14 @@ public class PaintPanel extends JPanel implements ComponentListener {
             }
         }
 
-        // Draw all shapes
+        // ALWAYS draw shapes on top for real-time drawing (regardless of image buffer)
         for (int i = 0; i < shapes.size(); i++) {
             g2d.setColor(shapeColors.get(i));
             g2d.setStroke(new BasicStroke(2.0f));
             g2d.draw(shapes.get(i));
         }
 
-        // Draw current shape preview
+        // Draw current shape preview (only for Rectangle and Oval tools)
         if (startPoint != null && endPoint != null &&
                 !currentTool.equals("Pencil") && !currentTool.equals("Eraser") && !currentTool.equals("Fill")) {
             g2d.setColor(currentColor);

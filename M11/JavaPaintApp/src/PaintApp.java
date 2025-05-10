@@ -1,3 +1,10 @@
+/*
+ * Java Paint Application with Konami Code Easter Egg
+ * Team 34
+ * 
+ * To run this application, run the main method in the PaintApp class.
+ */
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -10,13 +17,12 @@ public class PaintApp extends JFrame {
     private Color currentColor = Color.BLACK;
     private String currentTool = "Pencil";
     private ButtonGroup toolGroup;
-    
+
     // Konami code sequence
     private final List<Integer> KONAMI_CODE = Arrays.asList(
-        KeyEvent.VK_UP, KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_DOWN,
-        KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
-        KeyEvent.VK_B, KeyEvent.VK_A
-    );
+            KeyEvent.VK_UP, KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_DOWN,
+            KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
+            KeyEvent.VK_B, KeyEvent.VK_A);
     private ArrayList<Integer> keySequence = new ArrayList<>();
 
     public PaintApp() {
@@ -61,7 +67,8 @@ public class PaintApp extends JFrame {
         clearButton.addActionListener(e -> {
             paintPanel.clearAll();
         });
-        // Note: Clear button is NOT added to the toolGroup since it's not a toggle button
+        // Note: Clear button is NOT added to the toolGroup since it's not a toggle
+        // button
         toolBar.add(clearButton);
 
         // Create eraser button
@@ -111,34 +118,63 @@ public class PaintApp extends JFrame {
         eraserButton.addActionListener(toolListener);
         fillButton.addActionListener(toolListener);
 
-        // Add KeyListener for Konami code
-        addKeyListener(new KeyAdapter() {
+        // Add KeyListener for Konami code to the paint panel (better focus handling)
+        paintPanel.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 handleKonamiCode(e.getKeyCode());
             }
         });
-        
-        // Make sure the frame can receive key events
-        setFocusable(true);
-        requestFocus();
+
+        // Make sure the paint panel can receive key events
+        paintPanel.setFocusable(true);
+        paintPanel.requestFocus();
+
+        // Also add a mouse listener to ensure focus when clicked
+        paintPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                paintPanel.requestFocus();
+            }
+        });
 
         setVisible(true);
     }
 
     private void handleKonamiCode(int keyCode) {
+        // Debug: Print the key that was pressed
+        String keyName = KeyEvent.getKeyText(keyCode);
+        System.out.println("Key pressed: " + keyName + " (KeyCode: " + keyCode + ")");
+
         keySequence.add(keyCode);
-        
+
+        // Debug: Print current sequence
+        System.out.print("Current sequence: ");
+        for (int key : keySequence) {
+            System.out.print(KeyEvent.getKeyText(key) + " ");
+        }
+        System.out.println();
+
         // Keep only the last 10 keys (length of Konami code)
         if (keySequence.size() > KONAMI_CODE.size()) {
             keySequence.remove(0);
         }
-        
+
+        if (keySequence.size() == 1) {
+            System.out.print("Expected sequence: ");
+            for (int key : KONAMI_CODE) {
+                System.out.print(KeyEvent.getKeyText(key) + " ");
+            }
+            System.out.println();
+        }
+
         // Check if the sequence matches the Konami code
         if (keySequence.size() == KONAMI_CODE.size() && keySequence.equals(KONAMI_CODE)) {
+            System.out.println("KONAMI CODE ACTIVATED!");
             paintPanel.drawCoolEmoji();
             keySequence.clear(); // Reset the sequence
-            JOptionPane.showMessageDialog(this, "Konami Code Activated! 😎", "Easter Egg", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Konami Code Activated! 😎", "Easter Egg",
+                    JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
