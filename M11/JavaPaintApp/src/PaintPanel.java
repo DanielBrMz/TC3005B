@@ -50,8 +50,8 @@ public class PaintPanel extends JPanel implements ComponentListener {
                     newLine.add(startPoint);
                     lines.add(newLine);
 
-                    // Add color (white for eraser)
-                    Color lineColor = currentTool.equals("Eraser") ? Color.WHITE : currentColor;
+                    // Add color (white for eraser, current color for pencil)
+                    Color lineColor = currentTool.equals("Eraser") ? getBackground() : currentColor;
                     lineColors.add(lineColor);
                 }
             }
@@ -90,6 +90,29 @@ public class PaintPanel extends JPanel implements ComponentListener {
 
         // Add component listener for resize events
         addComponentListener(this);
+    }
+
+    /**
+     * Clears all drawn content from the canvas
+     */
+    public void clearAll() {
+        // Clear all lines
+        lines.clear();
+        lineColors.clear();
+
+        // Clear all shapes
+        shapes.clear();
+        shapeColors.clear();
+
+        // Clear the image buffer
+        image = null;
+
+        // Create a new empty line list
+        lines.add(new ArrayList<>());
+        lineColors.add(currentColor);
+
+        // Repaint the panel
+        repaint();
     }
 
     /**
@@ -169,6 +192,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
             ArrayList<Point> line = lines.get(i);
             if (line.size() > 1) {
                 g2d.setColor(lineColors.get(i));
+                g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 for (int j = 0; j < line.size() - 1; j++) {
                     Point p1 = line.get(j);
                     Point p2 = line.get(j + 1);
@@ -180,6 +204,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
         // Draw all shapes
         for (int i = 0; i < shapes.size(); i++) {
             g2d.setColor(shapeColors.get(i));
+            g2d.setStroke(new BasicStroke(2.0f));
             g2d.draw(shapes.get(i));
         }
     }
@@ -306,7 +331,10 @@ public class PaintPanel extends JPanel implements ComponentListener {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        // If we have an image from flood fill, draw it first
+        // Enable antialiasing for smoother drawing
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // If we have an image from flood fill or emoji, draw it first
         if (image != null) {
             g2d.drawImage(image, 0, 0, null);
         }
@@ -316,6 +344,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
             ArrayList<Point> line = lines.get(i);
             if (line.size() > 1) {
                 g2d.setColor(lineColors.get(i));
+                g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 for (int j = 0; j < line.size() - 1; j++) {
                     Point p1 = line.get(j);
                     Point p2 = line.get(j + 1);
@@ -327,6 +356,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
         // Draw all shapes
         for (int i = 0; i < shapes.size(); i++) {
             g2d.setColor(shapeColors.get(i));
+            g2d.setStroke(new BasicStroke(2.0f));
             g2d.draw(shapes.get(i));
         }
 
@@ -334,6 +364,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
         if (startPoint != null && endPoint != null &&
                 !currentTool.equals("Pencil") && !currentTool.equals("Eraser") && !currentTool.equals("Fill")) {
             g2d.setColor(currentColor);
+            g2d.setStroke(new BasicStroke(2.0f));
             Shape previewShape = createShape();
             if (previewShape != null) {
                 g2d.draw(previewShape);
@@ -352,8 +383,6 @@ public class PaintPanel extends JPanel implements ComponentListener {
                 return new Rectangle(x, y, width, height);
             case "Oval":
                 return new java.awt.geom.Ellipse2D.Double(x, y, width, height);
-            case "Arc":
-                return new java.awt.geom.Arc2D.Double(x, y, width, height, 0, 90, java.awt.geom.Arc2D.OPEN);
             default:
                 return null;
         }
