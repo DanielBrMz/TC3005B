@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Mail,
   Lock,
@@ -28,6 +28,7 @@ const RegisterForm: React.FC = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const { register, loginWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -83,10 +84,17 @@ const RegisterForm: React.FC = () => {
         formData.firstName.trim(),
         formData.lastName.trim()
       );
+      navigate("/");
     } catch (error: unknown) {
-      setErrors({
-        general: error instanceof Error ? error.message : "An error occurred",
-      });
+      const errorObj = error as { message?: string };
+      const errorMessage = errorObj.message?.includes("auth/email-already-in-use")
+        ? "An account with this email already exists"
+        : errorObj.message?.includes("auth/weak-password")
+        ? "Password is too weak"
+        : errorObj.message?.includes("auth/invalid-email")
+        ? "Invalid email address"
+        : errorObj.message || "Registration failed. Please try again.";
+      setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -97,10 +105,15 @@ const RegisterForm: React.FC = () => {
       setGoogleLoading(true);
       setErrors({});
       await loginWithGoogle();
+      navigate("/");
     } catch (error: unknown) {
-      setErrors({
-        general: error instanceof Error ? error.message : "An error occurred",
-      });
+      const errorObj = error as { message?: string };
+      const errorMessage = errorObj.message?.includes("auth/popup-closed-by-user")
+        ? "Sign-in was cancelled"
+        : errorObj.message?.includes("auth/popup-blocked")
+        ? "Popup was blocked. Please allow popups and try again."
+        : errorObj.message || "Google sign-in failed. Please try again.";
+      setErrors({ general: errorMessage });
     } finally {
       setGoogleLoading(false);
     }
@@ -411,7 +424,7 @@ const RegisterForm: React.FC = () => {
           {googleLoading ? (
             <>
               <div className="loading-spinner" />
-              Signing up with Google...
+              Signing up...
             </>
           ) : (
             <>

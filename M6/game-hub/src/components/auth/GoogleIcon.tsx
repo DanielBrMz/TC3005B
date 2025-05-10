@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const GoogleIcon: React.FC = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
