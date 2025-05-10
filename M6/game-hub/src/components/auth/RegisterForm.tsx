@@ -87,7 +87,9 @@ const RegisterForm: React.FC = () => {
       navigate("/");
     } catch (error: unknown) {
       const errorObj = error as { message?: string };
-      const errorMessage = errorObj.message?.includes("auth/email-already-in-use")
+      const errorMessage = errorObj.message?.includes(
+        "auth/email-already-in-use"
+      )
         ? "An account with this email already exists"
         : errorObj.message?.includes("auth/weak-password")
         ? "Password is too weak"
@@ -108,7 +110,9 @@ const RegisterForm: React.FC = () => {
       navigate("/");
     } catch (error: unknown) {
       const errorObj = error as { message?: string };
-      const errorMessage = errorObj.message?.includes("auth/popup-closed-by-user")
+      const errorMessage = errorObj.message?.includes(
+        "auth/popup-closed-by-user"
+      )
         ? "Sign-in was cancelled"
         : errorObj.message?.includes("auth/popup-blocked")
         ? "Popup was blocked. Please allow popups and try again."
@@ -292,35 +296,19 @@ const RegisterForm: React.FC = () => {
             </div>
 
             {formData.password && (
-              <div
-                style={{
-                  marginTop: "0.5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontSize: "0.8rem",
-                }}
-              >
-                <div
-                  style={{
-                    flex: 1,
-                    height: "4px",
-                    backgroundColor: "#2a475e",
-                    borderRadius: "2px",
-                    overflow: "hidden",
-                  }}
-                >
+              <div className="password-strength">
+                <div className="strength-bar">
                   <div
+                    className="strength-fill"
                     style={{
-                      height: "100%",
                       width: `${(passwordStrength.strength / 5) * 100}%`,
                       backgroundColor: passwordStrength.color,
-                      transition: "all 0.3s ease",
                     }}
                   />
                 </div>
                 <span
-                  style={{ color: passwordStrength.color, fontWeight: "500" }}
+                  className="strength-text"
+                  style={{ color: passwordStrength.color }}
                 >
                   {passwordStrength.text}
                 </span>

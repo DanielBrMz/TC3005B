@@ -18,7 +18,7 @@ const Footer: React.FC = () => {
         <div className="footer-bottom">
           <p className="copyright">© 2025 Game Hub. All rights reserved. All trademarks are property of their respective owners in the US and other countries.</p>
           <p className="legal-links">
-            <a href="#">Privacy Policy</a> | <a href="#">Legal</a> | <a href="#">Steam Subscriber Agreement</a>
+            <a href="#">Privacy Policy</a> | <a href="#">Legal</a> | <a href="#"> Game Hub Subscriber Agreement</a>
           </p>
         </div>
       </div>

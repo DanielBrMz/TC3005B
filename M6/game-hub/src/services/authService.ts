@@ -12,7 +12,6 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { FirebaseError } from "firebase/app";
 import { auth, googleProvider, db } from "../config/firebase";
 import type { User } from "../types/user";
 
@@ -58,13 +57,9 @@ export const authService = {
         uid: firebaseUser.uid,
         ...userData,
       };
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error registering user:", error);
-      const message =
-        error instanceof FirebaseError
-          ? error.message
-          : "Failed to register user";
-      throw new Error(message);
+      throw new Error(this.getAuthErrorMessage(error));
     }
   },
 
@@ -79,34 +74,33 @@ export const authService = {
       const firebaseUser = userCredential.user;
 
       return await this.getUserData(firebaseUser.uid);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error logging in:", error);
-      const message =
-        error instanceof FirebaseError ? error.message : "Failed to login";
-      throw new Error(message);
+      throw new Error(this.getAuthErrorMessage(error));
     }
   },
 
   // Login with Google
   async loginWithGoogle(): Promise<User> {
     try {
-      const userCredential = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = userCredential.user;
+      // Clear any existing popup
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
 
       // Check if user document exists
       const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
 
       if (!userDoc.exists()) {
         // First time Google login - create user document
-        const [firstName, ...lastNameParts] = firebaseUser.displayName?.split(
-          " "
-        ) || ["", ""];
-        const lastName = lastNameParts.join(" ");
+        const displayName = firebaseUser.displayName || "";
+        const nameParts = displayName.split(" ");
+        const firstName = nameParts[0] || "User";
+        const lastName = nameParts.slice(1).join(" ") || "";
 
         const userData: Omit<User, "uid"> = {
           email: firebaseUser.email!,
-          firstName: firstName || "User",
-          lastName: lastName || "",
+          firstName,
+          lastName,
           bio: "",
           photoURL: firebaseUser.photoURL || "",
           createdAt: new Date(),
@@ -126,13 +120,9 @@ export const authService = {
       }
 
       return await this.getUserData(firebaseUser.uid);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error logging in with Google:", error);
-      const message =
-        error instanceof FirebaseError
-          ? error.message
-          : "Failed to login with Google";
-      throw new Error(message);
+      throw new Error(this.getAuthErrorMessage(error));
     }
   },
 
@@ -156,7 +146,7 @@ export const authService = {
         createdAt: userData.createdAt?.toDate() || new Date(),
         updatedAt: userData.updatedAt?.toDate() || new Date(),
       };
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error getting user data:", error);
       throw new Error("Failed to get user data");
     }
@@ -183,7 +173,7 @@ export const authService = {
           });
         }
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error updating user profile:", error);
       throw new Error("Failed to update profile");
     }
@@ -193,9 +183,49 @@ export const authService = {
   async logout(): Promise<void> {
     try {
       await signOut(auth);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error logging out:", error);
       throw new Error("Failed to logout");
+    }
+  },
+
+  // Helper method to get user-friendly error messages
+  getAuthErrorMessage(error: unknown): string {
+    // Safely handle the unknown error type
+    const errorObj = error as { code?: string; message?: string };
+    const errorCode = errorObj?.code;
+
+    switch (errorCode) {
+      case "auth/user-not-found":
+        return "No account found with this email address.";
+      case "auth/wrong-password":
+        return "Incorrect password.";
+      case "auth/invalid-email":
+        return "Invalid email address.";
+      case "auth/user-disabled":
+        return "This account has been disabled.";
+      case "auth/email-already-in-use":
+        return "An account with this email already exists.";
+      case "auth/weak-password":
+        return "Password is too weak. Please choose a stronger password.";
+      case "auth/operation-not-allowed":
+        return "This sign-in method is not enabled. Please contact support.";
+      case "auth/popup-closed-by-user":
+        return "Sign-in was cancelled.";
+      case "auth/popup-blocked":
+        return "Popup was blocked. Please allow popups and try again.";
+      case "auth/cancelled-popup-request":
+        return "Sign-in was cancelled.";
+      case "auth/network-request-failed":
+        return "Network error. Please check your connection and try again.";
+      case "auth/too-many-requests":
+        return "Too many failed attempts. Please try again later.";
+      case "auth/invalid-credential":
+        return "Invalid credentials. Please check your email and password.";
+      default:
+        return (
+          errorObj?.message || "An unexpected error occurred. Please try again."
+        );
     }
   },
 };
