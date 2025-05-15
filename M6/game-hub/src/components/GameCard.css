@@ -1,0 +1,95 @@
+.game-card {
+  background-color: #2a475e;
+  border-radius: 3px;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.game-card-image {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+}
+
+.game-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s;
+}
+
+.game-card:hover .game-card-image img {
+  transform: scale(1.05);
+}
+
+.game-card-content {
+  padding: 1rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.game-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #8f98a0; /* Steam's secondary text */
+}
+
+.game-rating {
+  color: #66c0f4; /* Steam's bright blue */
+}
+
+.game-platforms {
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+  color: #8f98a0; /* Steam's secondary text */
+  line-height: 1.4;
+}
+
+.game-genres {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.game-genre {
+  background-color: #1a9fff; /* Steam's blue button */
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+}
+
+/* Media query for mobile responsiveness */
+@media (max-width: 768px) {
+  .game-title {
+    font-size: 0.9rem;
+  }
+  
+  .game-meta, .game-platforms {
+    font-size: 0.75rem;
+  }
+  
+  .game-genre {
+    font-size: 0.6rem;
+  }
+}
