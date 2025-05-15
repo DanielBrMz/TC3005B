@@ -2,9 +2,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #171a21; /* Steam's dark blue background */
+  background-color: #171a21; 
   padding: 1rem 2rem;
-  color: #c7d5e0; /* Steam's light blue text */
+  color: #c7d5e0;
 }
 
 .navbar-logo a {
@@ -27,7 +27,7 @@
 }
 
 .nav-link:hover {
-  color: #66c0f4; /* Steam's bright blue accent */
+  color: #66c0f4;
 }
 
 /* Media query for mobile responsiveness */
