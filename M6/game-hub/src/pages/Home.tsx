@@ -79,11 +79,6 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* Special offers banner */}
-          <div className="special-offers-banner">
-            <h3>SPECIAL SALE - Save up to 90% on selected titles!</h3>
-          </div>
-
           {/* Special offers section */}
           <div className="special-offers-section">
             <div className="section-header">

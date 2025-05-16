@@ -21,7 +21,6 @@ const Navbar: React.FC = () => {
           </div>
         </div>
         <div className="navbar-actions">
-          <div className="install-button">Install</div>
           <div className="notification-icon">
             <span className="icon">🔔</span>
           </div>
