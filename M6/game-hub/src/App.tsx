@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Search from './pages/Search';
 import Dashboard from './pages/Dashboard';
@@ -10,14 +11,15 @@ function App() {
   return (
     <div className="app">
       <Navbar />
-      <div className="container">
+      <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<Search />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
         </Routes>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }
