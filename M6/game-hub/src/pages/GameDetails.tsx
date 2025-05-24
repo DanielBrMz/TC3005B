@@ -1,11 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
+  ArrowLeft,
+  Star,
+  Calendar,
+  Monitor,
+  Users,
+  Trophy,
+  Heart,
+  ShoppingCart,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  Zap,
+  HardDrive,
+  Cpu,
+  MemoryStick,
+  Wifi,
+} from "lucide-react";
+import {
   getGameById,
   getGameScreenshots,
-  getRelatedGames,
+  getSimilarGames,
 } from "../services/gameService";
-import type { GameDetail, Screenshot } from "../types/game";
+import { priceGenerator } from "../utils/priceGenerator";
+import { systemRequirementsGenerator } from "../utils/systemRequirementsGenerator";
+import type { GameDetail, Screenshot, Game } from "../types/game";
 import GameCard from "../components/GameCard";
 import "./GameDetails.css";
 
@@ -13,9 +33,102 @@ const GameDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [game, setGame] = useState<GameDetail | null>(null);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
-  const [relatedGames, setRelatedGames] = useState<GameDetail[]>([]);
+  const [similarGames, setSimilarGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [similarGamesLoading, setSimilarGamesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  // New state for pricing and system requirements
+  const [gamePrice, setGamePrice] = useState<number>(0);
+  const [discountInfo, setDiscountInfo] = useState<{
+    original: number;
+    discounted: number;
+    savings: number;
+  } | null>(null);
+
+  interface SystemRequirement {
+    os: string;
+    processor: string;
+    memory: string;
+    graphics: string;
+    storage: string;
+    directx?: string;
+    network?: string;
+    additional?: string;
+  }
+
+  interface SystemRequirements {
+    minimum: SystemRequirement;
+    recommended: SystemRequirement;
+  }
+
+  const [systemRequirements, setSystemRequirements] =
+    useState<SystemRequirements | null>(null);
+  const [showDiscount, setShowDiscount] = useState(false);
+
+  // Function to fetch similar games independently
+  const fetchSimilarGames = async (gameData: GameDetail) => {
+    setSimilarGamesLoading(true);
+    try {
+      console.log("Fetching similar games for:", gameData.name);
+      const similarData = await getSimilarGames(gameData);
+      setSimilarGames(similarData);
+      console.log(
+        `Found ${similarData.length} similar games using intelligent matching`
+      );
+    } catch (error) {
+      console.error("Error fetching similar games:", error);
+      // Don't show error to user for similar games, just log it
+    } finally {
+      setSimilarGamesLoading(false);
+    }
+  };
+
+  // Function to generate pricing and system requirements
+  const generateGameData = (gameData: GameDetail) => {
+    console.log(
+      "Generating intelligent pricing and system requirements for:",
+      gameData.name
+    );
+
+    // Generate consistent, intelligent pricing based on game characteristics
+    const price = priceGenerator.generatePrice(gameData);
+    setGamePrice(price);
+
+    // Randomly decide if this game should have a discount (30% chance)
+    const hasDiscount = Math.random() < 0.3;
+    if (hasDiscount) {
+      // Generate a realistic discount between 10% and 75%
+      const discountPercent = Math.floor(Math.random() * 65) + 10;
+      const discount = priceGenerator.generateDiscountedPrice(
+        gameData,
+        discountPercent
+      );
+      setDiscountInfo(discount);
+      setShowDiscount(true);
+    } else {
+      setDiscountInfo(null);
+      setShowDiscount(false);
+    }
+
+    // Generate realistic system requirements based on game characteristics
+    const requirements =
+      systemRequirementsGenerator.generateRequirements(gameData);
+    setSystemRequirements(requirements);
+
+    console.log("Generated pricing:", { price, hasDiscount, discountInfo });
+    console.log(
+      "Generated system requirements complexity based on game analysis"
+    );
+  };
+
+  // Function to refresh similar games manually
+  const refreshSimilarGames = () => {
+    if (game) {
+      fetchSimilarGames(game);
+    }
+  };
 
   useEffect(() => {
     const fetchGameDetails = async () => {
@@ -25,27 +138,30 @@ const GameDetails: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch main game details
+        console.log("Fetching comprehensive game details for ID:", id);
+
+        // Fetch main game details first
         const gameData = await getGameById(parseInt(id));
         setGame(gameData);
 
-        // Fetch screenshots
-        try {
-          const screenshotsData = await getGameScreenshots(parseInt(id));
-          setScreenshots(screenshotsData.results || []);
-        } catch (screenshotError) {
-          console.warn("Could not fetch screenshots:", screenshotError);
-        }
+        // Generate intelligent pricing and system requirements
+        generateGameData(gameData);
 
-        // Fetch related games (games with similar genres)
-        if (gameData.genres && gameData.genres.length > 0) {
-          try {
-            const relatedData = await getRelatedGames(gameData.genres[0].slug);
-            setRelatedGames(relatedData.results.slice(0, 4));
-          } catch (relatedError) {
-            console.warn("Could not fetch related games:", relatedError);
-          }
-        }
+        // Fetch screenshots in parallel (non-blocking for better UX)
+        getGameScreenshots(parseInt(id))
+          .then((screenshotsData) => {
+            setScreenshots(screenshotsData.results || []);
+            console.log(
+              `Loaded ${screenshotsData.results?.length || 0} screenshots`
+            );
+          })
+          .catch((screenshotError) => {
+            console.warn("Could not fetch screenshots:", screenshotError);
+          });
+
+        // Fetch similar games using our intelligent matching system
+        // This runs separately so it doesn't block the main content loading
+        fetchSimilarGames(gameData);
       } catch (err) {
         setError("Failed to load game details. Please try again later.");
         console.error("Error fetching game details:", err);
@@ -55,9 +171,10 @@ const GameDetails: React.FC = () => {
     };
 
     fetchGameDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Helper function to render star rating
+  // Helper function to render star rating with visual feedback
   const renderStarRating = (rating: number) => {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
@@ -65,14 +182,24 @@ const GameDetails: React.FC = () => {
 
     return (
       <div className="rating-stars">
-        {"★".repeat(fullStars)}
-        {hasHalfStar && "☆"}
-        {"☆".repeat(emptyStars)}
+        {Array(fullStars)
+          .fill(0)
+          .map((_, i) => (
+            <Star key={`full-${i}`} size={16} fill="currentColor" />
+          ))}
+        {hasHalfStar && (
+          <Star key="half" size={16} fill="currentColor" opacity={0.5} />
+        )}
+        {Array(emptyStars)
+          .fill(0)
+          .map((_, i) => (
+            <Star key={`empty-${i}`} size={16} />
+          ))}
       </div>
     );
   };
 
-  // Helper function to format release date
+  // Helper function to format release date in a user-friendly way
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
       year: "numeric",
@@ -82,19 +209,41 @@ const GameDetails: React.FC = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Helper function to strip HTML tags from description
+  // Helper function to clean up HTML content from API responses
   const stripHtmlTags = (html: string) => {
     const tmp = document.createElement("div");
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || "";
   };
 
+  // Helper function to get the appropriate icon for system requirement types
+  const getRequirementIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "processor":
+        return <Cpu size={16} />;
+      case "memory":
+        return <MemoryStick size={16} />;
+      case "graphics":
+        return <Monitor size={16} />;
+      case "storage":
+        return <HardDrive size={16} />;
+      case "network":
+        return <Wifi size={16} />;
+      default:
+        return <Zap size={16} />;
+    }
+  };
+
   if (loading) {
     return (
       <div className="game-details-page">
         <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading game details...</p>
+          <Loader2 size={36} className="loading-spinner spinning" />
+          <p>Loading comprehensive game details...</p>
+          <small>
+            Analyzing game characteristics for intelligent pricing and
+            requirements...
+          </small>
         </div>
       </div>
     );
@@ -104,7 +253,8 @@ const GameDetails: React.FC = () => {
     return (
       <div className="game-details-page">
         <Link to="/" className="back-button">
-          ← Back to Home
+          <ArrowLeft size={16} />
+          Back to Home
         </Link>
         <div className="error-message">{error || "Game not found"}</div>
       </div>
@@ -114,10 +264,11 @@ const GameDetails: React.FC = () => {
   return (
     <div className="game-details-page">
       <Link to="/" className="back-button">
-        ← Back to Home
+        <ArrowLeft size={16} />
+        Back to Home
       </Link>
 
-      {/* Game Header */}
+      {/* Game Header with Enhanced Pricing */}
       <div className="game-header">
         <img
           src={
@@ -133,6 +284,7 @@ const GameDetails: React.FC = () => {
 
           <div className="game-meta">
             <div className="meta-item">
+              <Calendar size={16} />
               <span className="meta-label">Released:</span>
               <span className="meta-value">
                 {game.released
@@ -142,6 +294,7 @@ const GameDetails: React.FC = () => {
             </div>
 
             <div className="meta-item">
+              <Star size={16} />
               <span className="meta-label">Rating:</span>
               <div className="rating-display">
                 {renderStarRating(game.rating)}
@@ -150,6 +303,7 @@ const GameDetails: React.FC = () => {
             </div>
 
             <div className="meta-item">
+              <Monitor size={16} />
               <span className="meta-label">Platforms:</span>
               <div className="platforms-list">
                 {game.platforms?.map((platform) => (
@@ -161,6 +315,7 @@ const GameDetails: React.FC = () => {
             </div>
 
             <div className="meta-item">
+              <Trophy size={16} />
               <span className="meta-label">Genres:</span>
               <div className="genres-list">
                 {game.genres?.map((genre) => (
@@ -173,6 +328,7 @@ const GameDetails: React.FC = () => {
 
             {game.developers && game.developers.length > 0 && (
               <div className="meta-item">
+                <Users size={16} />
                 <span className="meta-label">Developer:</span>
                 <span className="meta-value">
                   {game.developers.map((dev) => dev.name).join(", ")}
@@ -182,21 +338,74 @@ const GameDetails: React.FC = () => {
 
             {game.publishers && game.publishers.length > 0 && (
               <div className="meta-item">
+                <Users size={16} />
                 <span className="meta-label">Publisher:</span>
                 <span className="meta-value">
                   {game.publishers.map((pub) => pub.name).join(", ")}
                 </span>
               </div>
             )}
+
+            {/* Enhanced Price Display with Intelligent Pricing */}
+            <div className="meta-item price-item">
+              <ShoppingCart size={16} />
+              <span className="meta-label">Price:</span>
+              <div className="price-display">
+                {showDiscount && discountInfo ? (
+                  <div className="price-with-discount">
+                    <span className="discount-badge">
+                      -
+                      {Math.round(
+                        ((discountInfo.original - discountInfo.discounted) /
+                          discountInfo.original) *
+                          100
+                      )}
+                      %
+                    </span>
+                    <div className="price-breakdown">
+                      <span className="original-price">
+                        ${discountInfo.original.toFixed(2)}
+                      </span>
+                      <span className="current-price">
+                        ${discountInfo.discounted.toFixed(2)}
+                      </span>
+                    </div>
+                    <span className="savings-text">
+                      Save ${discountInfo.savings.toFixed(2)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="game-price">${gamePrice.toFixed(2)}</span>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="game-actions">
             <button className="action-button primary-button">
-              Add to Library
+              <ShoppingCart size={16} />
+              Add to Cart
             </button>
-            <button className="action-button secondary-button">
-              Add to Wishlist
+            <button
+              className={`action-button secondary-button ${
+                isWishlisted ? "wishlisted" : ""
+              }`}
+              onClick={() => setIsWishlisted(!isWishlisted)}
+            >
+              <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
+              {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
             </button>
+            {game.website && (
+              <a
+                href={game.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="action-button tertiary-button"
+              >
+                <ExternalLink size={16} />
+                Official Site
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -225,81 +434,241 @@ const GameDetails: React.FC = () => {
         </div>
       )}
 
-      {/* System Requirements (Placeholder) */}
-      <div className="requirements-section">
-        <h2 className="section-title">System Requirements</h2>
-        <div className="requirements-grid">
-          <div className="requirement-category">
-            <h4>Minimum Requirements</h4>
-            <div className="requirement-item">
-              <span className="requirement-label">OS:</span>
-              <span className="requirement-value">Windows 10 64-bit</span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Processor:</span>
-              <span className="requirement-value">
-                Intel Core i5-3470 / AMD FX-6300
-              </span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Memory:</span>
-              <span className="requirement-value">8 GB RAM</span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Graphics:</span>
-              <span className="requirement-value">
-                NVIDIA GTX 960 / AMD R9 280
-              </span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Storage:</span>
-              <span className="requirement-value">50 GB available space</span>
-            </div>
+      {/* Dynamic System Requirements */}
+      {systemRequirements && (
+        <div className="requirements-section">
+          <h2 className="section-title">System Requirements</h2>
+          <div className="requirements-explanation">
+            <p>
+              These requirements are intelligently generated based on the game's
+              release date, genre complexity, platform availability, and visual
+              demands. Our algorithm analyzes multiple factors to provide
+              realistic hardware specifications.
+            </p>
           </div>
 
-          <div className="requirement-category">
-            <h4>Recommended Requirements</h4>
-            <div className="requirement-item">
-              <span className="requirement-label">OS:</span>
-              <span className="requirement-value">Windows 11 64-bit</span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Processor:</span>
-              <span className="requirement-value">
-                Intel Core i7-8700K / AMD Ryzen 5 3600
-              </span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Memory:</span>
-              <span className="requirement-value">16 GB RAM</span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Graphics:</span>
-              <span className="requirement-value">
-                NVIDIA RTX 3070 / AMD RX 6700 XT
-              </span>
-            </div>
-            <div className="requirement-item">
-              <span className="requirement-label">Storage:</span>
-              <span className="requirement-value">
-                50 GB available space (SSD recommended)
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+          <div className="requirements-grid">
+            <div className="requirement-category">
+              <h4>
+                <Monitor size={20} />
+                Minimum Requirements
+              </h4>
 
-      {/* Related Games */}
-      {relatedGames.length > 0 && (
-        <div className="related-games-section">
-          <h2 className="section-title">Similar Games</h2>
-          <div className="related-games-grid">
-            {relatedGames.map((relatedGame) => (
-              <GameCard key={relatedGame.id} game={relatedGame} />
-            ))}
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("os")}
+                </div>
+                <span className="requirement-label">Operating System:</span>
+                <span className="requirement-value">
+                  {systemRequirements.minimum.os}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("processor")}
+                </div>
+                <span className="requirement-label">Processor:</span>
+                <span className="requirement-value">
+                  {systemRequirements.minimum.processor}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("memory")}
+                </div>
+                <span className="requirement-label">Memory:</span>
+                <span className="requirement-value">
+                  {systemRequirements.minimum.memory}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("graphics")}
+                </div>
+                <span className="requirement-label">Graphics:</span>
+                <span className="requirement-value">
+                  {systemRequirements.minimum.graphics}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("storage")}
+                </div>
+                <span className="requirement-label">Storage:</span>
+                <span className="requirement-value">
+                  {systemRequirements.minimum.storage}
+                </span>
+              </div>
+
+              {systemRequirements.minimum.directx && (
+                <div className="requirement-item">
+                  <div className="requirement-icon">
+                    {getRequirementIcon("directx")}
+                  </div>
+                  <span className="requirement-label">DirectX:</span>
+                  <span className="requirement-value">
+                    {systemRequirements.minimum.directx}
+                  </span>
+                </div>
+              )}
+
+              {systemRequirements.minimum.network && (
+                <div className="requirement-item">
+                  <div className="requirement-icon">
+                    {getRequirementIcon("network")}
+                  </div>
+                  <span className="requirement-label">Network:</span>
+                  <span className="requirement-value">
+                    {systemRequirements.minimum.network}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="requirement-category">
+              <h4>
+                <Trophy size={20} />
+                Recommended Requirements
+              </h4>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("os")}
+                </div>
+                <span className="requirement-label">Operating System:</span>
+                <span className="requirement-value">
+                  {systemRequirements.recommended.os}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("processor")}
+                </div>
+                <span className="requirement-label">Processor:</span>
+                <span className="requirement-value">
+                  {systemRequirements.recommended.processor}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("memory")}
+                </div>
+                <span className="requirement-label">Memory:</span>
+                <span className="requirement-value">
+                  {systemRequirements.recommended.memory}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("graphics")}
+                </div>
+                <span className="requirement-label">Graphics:</span>
+                <span className="requirement-value">
+                  {systemRequirements.recommended.graphics}
+                </span>
+              </div>
+
+              <div className="requirement-item">
+                <div className="requirement-icon">
+                  {getRequirementIcon("storage")}
+                </div>
+                <span className="requirement-label">Storage:</span>
+                <span className="requirement-value">
+                  {systemRequirements.recommended.storage}
+                </span>
+              </div>
+
+              {systemRequirements.recommended.directx && (
+                <div className="requirement-item">
+                  <div className="requirement-icon">
+                    {getRequirementIcon("directx")}
+                  </div>
+                  <span className="requirement-label">DirectX:</span>
+                  <span className="requirement-value">
+                    {systemRequirements.recommended.directx}
+                  </span>
+                </div>
+              )}
+
+              {systemRequirements.recommended.additional && (
+                <div className="requirement-item additional-req">
+                  <div className="requirement-icon">
+                    {getRequirementIcon("additional")}
+                  </div>
+                  <span className="requirement-label">Additional Notes:</span>
+                  <span className="requirement-value">
+                    {systemRequirements.recommended.additional}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+
+      {/* Similar Games with Intelligent Matching */}
+      <div className="similar-games-section">
+        <div className="similar-games-header">
+          <h2 className="section-title">Games Similar to {game.name}</h2>
+          <button
+            className="refresh-similar-button"
+            onClick={refreshSimilarGames}
+            disabled={similarGamesLoading}
+            title="Find more similar games using our intelligent matching algorithm"
+          >
+            {similarGamesLoading ? (
+              <Loader2 size={16} className="spinning" />
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            Refresh Matches
+          </button>
+        </div>
+
+        {similarGamesLoading ? (
+          <div className="similar-games-loading">
+            <Loader2 size={24} className="spinning" />
+            <p>Analyzing {game.name} and finding truly similar games...</p>
+            <small>
+              Our algorithm considers genres, developers, release timeframes,
+              platforms, and ratings
+            </small>
+          </div>
+        ) : similarGames.length > 0 ? (
+          <>
+            <div className="similarity-explanation">
+              <p>
+                These games are carefully selected using our multi-factor
+                similarity algorithm. We analyze genre overlaps, developer
+                relationships, release timeframes, platform compatibility, and
+                rating similarities to find games that truly match {game.name}'s
+                characteristics and appeal.
+              </p>
+            </div>
+            <div className="similar-games-grid">
+              {similarGames.map((similarGame) => (
+                <GameCard key={similarGame.id} game={similarGame} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="no-similar-games">
+            <p>
+              Our intelligent matching algorithm couldn't find sufficiently
+              similar games. This might indicate that {game.name} is
+              particularly unique, or we need more comprehensive data to make
+              accurate comparisons.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

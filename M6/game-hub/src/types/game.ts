@@ -31,6 +31,7 @@ export interface Game {
   name: string;
   slug: string;
   background_image: string;
+  developers?: { name: string }[];
   rating: number;
   released: string;
   platforms: PlatformDetail[];
