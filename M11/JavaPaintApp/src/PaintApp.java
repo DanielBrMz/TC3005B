@@ -1,12 +1,29 @@
+/*
+ * Java Paint Application with Konami Code Easter Egg
+ * Team 34
+ * 
+ * To run this application, run the main method in the PaintApp class.
+ */
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class PaintApp extends JFrame {
     private PaintPanel paintPanel;
     private Color currentColor = Color.BLACK;
     private String currentTool = "Pencil";
     private ButtonGroup toolGroup;
+
+    // Konami code sequence
+    private final List<Integer> KONAMI_CODE = Arrays.asList(
+            KeyEvent.VK_UP, KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_DOWN,
+            KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
+            KeyEvent.VK_B, KeyEvent.VK_A);
+    private ArrayList<Integer> keySequence = new ArrayList<>();
 
     public PaintApp() {
         // Set up the frame
@@ -45,11 +62,14 @@ public class PaintApp extends JFrame {
         toolGroup.add(ovalButton);
         toolBar.add(ovalButton);
 
-        // Create arc button
-        JToggleButton arcButton = new JToggleButton("Arc");
-        arcButton.addActionListener(e -> currentTool = "Arc");
-        toolGroup.add(arcButton);
-        toolBar.add(arcButton);
+        // Create clear button (changed from Arc, now JButton instead of JToggleButton)
+        JButton clearButton = new JButton("Clear");
+        clearButton.addActionListener(e -> {
+            paintPanel.clearAll();
+        });
+        // Note: Clear button is NOT added to the toolGroup since it's not a toggle
+        // button
+        toolBar.add(clearButton);
 
         // Create eraser button
         JToggleButton eraserButton = new JToggleButton("Eraser");
@@ -62,14 +82,6 @@ public class PaintApp extends JFrame {
         fillButton.addActionListener(e -> currentTool = "Fill");
         toolGroup.add(fillButton);
         toolBar.add(fillButton);
-
-        // Add a button to draw emoji
-        JButton emojiButton = new JButton("Spray");
-        emojiButton.addActionListener(e -> {
-            paintPanel.drawCoolEmoji();
-        });
-        // automatically add emoji functionality when starting the app
-        toolBar.add(emojiButton);
 
         // Add colors (10 colors as required)
         Color[] colors = {
@@ -103,11 +115,67 @@ public class PaintApp extends JFrame {
         pencilButton.addActionListener(toolListener);
         rectangleButton.addActionListener(toolListener);
         ovalButton.addActionListener(toolListener);
-        arcButton.addActionListener(toolListener);
         eraserButton.addActionListener(toolListener);
         fillButton.addActionListener(toolListener);
 
+        // Add KeyListener for Konami code to the paint panel (better focus handling)
+        paintPanel.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                handleKonamiCode(e.getKeyCode());
+            }
+        });
+
+        // Make sure the paint panel can receive key events
+        paintPanel.setFocusable(true);
+        paintPanel.requestFocus();
+
+        // Also add a mouse listener to ensure focus when clicked
+        paintPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                paintPanel.requestFocus();
+            }
+        });
+
         setVisible(true);
+    }
+
+    private void handleKonamiCode(int keyCode) {
+        // Debug: Print the key that was pressed
+        String keyName = KeyEvent.getKeyText(keyCode);
+        System.out.println("Key pressed: " + keyName + " (KeyCode: " + keyCode + ")");
+
+        keySequence.add(keyCode);
+
+        // Debug: Print current sequence
+        System.out.print("Current sequence: ");
+        for (int key : keySequence) {
+            System.out.print(KeyEvent.getKeyText(key) + " ");
+        }
+        System.out.println();
+
+        // Keep only the last 10 keys (length of Konami code)
+        if (keySequence.size() > KONAMI_CODE.size()) {
+            keySequence.remove(0);
+        }
+
+        if (keySequence.size() == 1) {
+            System.out.print("Expected sequence: ");
+            for (int key : KONAMI_CODE) {
+                System.out.print(KeyEvent.getKeyText(key) + " ");
+            }
+            System.out.println();
+        }
+
+        // Check if the sequence matches the Konami code
+        if (keySequence.size() == KONAMI_CODE.size() && keySequence.equals(KONAMI_CODE)) {
+            System.out.println("KONAMI CODE ACTIVATED!");
+            paintPanel.drawCoolEmoji();
+            keySequence.clear(); // Reset the sequence
+            JOptionPane.showMessageDialog(this, "Konami Code Activated! 😎", "Easter Egg",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }
     }
 
     public static void main(String[] args) {
