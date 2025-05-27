@@ -520,6 +520,7 @@
   text-decoration: none;
   transition: all 0.2s;
   border: 1px solid transparent;
+  height: 1rem;
 }
 
 .auth-button:not(.primary) {
