@@ -1,8 +1,12 @@
 /*
- * Java Paint Application with Konami Code Easter Egg
+ * Java Paint Application with Enhanced Color Management
  * Team 34
  * 
- * To run this application, run the main method in the PaintApp class.
+ * Enhanced with:
+ * - Visual color indicator panels
+ * - Left-click only drawing
+ * - Right-click fill color selection
+ * - Shape filling capabilities
  */
 
 import javax.swing.*;
@@ -14,9 +18,14 @@ import java.util.List;
 
 public class PaintApp extends JFrame {
     private PaintPanel paintPanel;
-    private Color currentColor = Color.BLACK;
+    private Color currentColor = Color.BLACK;      // Stroke/outline color
+    private Color currentFillColor = Color.WHITE;  // Fill color for shapes
     private String currentTool = "Pencil";
     private ButtonGroup toolGroup;
+    
+    // Visual indicators for current colors
+    private JPanel strokeColorPanel;
+    private JPanel fillColorPanel;
 
     // Konami code sequence
     private final List<Integer> KONAMI_CODE = Arrays.asList(
@@ -27,9 +36,9 @@ public class PaintApp extends JFrame {
 
     public PaintApp() {
         // Set up the frame
-        super("Java Paint App");
+        super("Java Paint App - Enhanced");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
+        setSize(900, 650); // Slightly larger to accommodate new panels
         setLayout(new BorderLayout());
 
         // Create the painting panel
@@ -62,13 +71,11 @@ public class PaintApp extends JFrame {
         toolGroup.add(ovalButton);
         toolBar.add(ovalButton);
 
-        // Create clear button (changed from Arc, now JButton instead of JToggleButton)
+        // Create clear button
         JButton clearButton = new JButton("Clear");
         clearButton.addActionListener(e -> {
             paintPanel.clearAll();
         });
-        // Note: Clear button is NOT added to the toolGroup since it's not a toggle
-        // button
         toolBar.add(clearButton);
 
         // Create eraser button
@@ -83,19 +90,47 @@ public class PaintApp extends JFrame {
         toolGroup.add(fillButton);
         toolBar.add(fillButton);
 
-        // Add colors (10 colors as required)
+        // Add separator for visual organization
+        toolBar.add(new JSeparator(SwingConstants.VERTICAL));
+        
+        // Create color indicator panels
+        createColorIndicators(toolBar);
+        
+        // Add another separator
+        toolBar.add(new JSeparator(SwingConstants.VERTICAL));
+
+        // Add color selection buttons
         Color[] colors = {
                 Color.BLACK, Color.DARK_GRAY, Color.GRAY, Color.LIGHT_GRAY, Color.WHITE,
                 Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.MAGENTA
         };
 
+        // Add instruction label for color selection
+        JLabel colorLabel = new JLabel("Colors (L-click: stroke, R-click: fill):");
+        colorLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+        toolBar.add(colorLabel);
+
         for (Color color : colors) {
             JButton colorButton = new JButton();
             colorButton.setBackground(color);
             colorButton.setPreferredSize(new Dimension(30, 30));
-            colorButton.addActionListener(e -> {
-                currentColor = color;
-                paintPanel.setCurrentColor(currentColor);
+            
+            // Add mouse listener to handle left and right clicks differently
+            colorButton.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (SwingUtilities.isLeftMouseButton(e)) {
+                        // Left click sets stroke color
+                        currentColor = color;
+                        paintPanel.setCurrentColor(currentColor);
+                        updateColorIndicators();
+                    } else if (SwingUtilities.isRightMouseButton(e)) {
+                        // Right click sets fill color
+                        currentFillColor = color;
+                        paintPanel.setCurrentFillColor(currentFillColor);
+                        updateColorIndicators();
+                    }
+                }
             });
             toolBar.add(colorButton);
         }
@@ -104,6 +139,7 @@ public class PaintApp extends JFrame {
 
         // Set initial values to paint panel
         paintPanel.setCurrentColor(currentColor);
+        paintPanel.setCurrentFillColor(currentFillColor);
         paintPanel.setCurrentTool(currentTool);
 
         // Add listeners for tool change
@@ -118,7 +154,7 @@ public class PaintApp extends JFrame {
         eraserButton.addActionListener(toolListener);
         fillButton.addActionListener(toolListener);
 
-        // Add KeyListener for Konami code to the paint panel (better focus handling)
+        // Add KeyListener for Konami code to the paint panel
         paintPanel.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -130,7 +166,7 @@ public class PaintApp extends JFrame {
         paintPanel.setFocusable(true);
         paintPanel.requestFocus();
 
-        // Also add a mouse listener to ensure focus when clicked
+        // Add mouse listener to ensure focus when clicked
         paintPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -139,6 +175,46 @@ public class PaintApp extends JFrame {
         });
 
         setVisible(true);
+    }
+
+    /**
+     * Creates visual indicators showing current stroke and fill colors
+     */
+    private void createColorIndicators(JPanel toolBar) {
+        // Stroke color indicator
+        JLabel strokeLabel = new JLabel("Stroke:");
+        strokeLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        toolBar.add(strokeLabel);
+        
+        strokeColorPanel = new JPanel();
+        strokeColorPanel.setBackground(currentColor);
+        strokeColorPanel.setPreferredSize(new Dimension(40, 30));
+        strokeColorPanel.setBorder(BorderFactory.createLoweredBevelBorder());
+        strokeColorPanel.setToolTipText("Current stroke/outline color");
+        toolBar.add(strokeColorPanel);
+        
+        // Fill color indicator
+        JLabel fillLabel = new JLabel("Fill:");
+        fillLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        toolBar.add(fillLabel);
+        
+        fillColorPanel = new JPanel();
+        fillColorPanel.setBackground(currentFillColor);
+        fillColorPanel.setPreferredSize(new Dimension(40, 30));
+        fillColorPanel.setBorder(BorderFactory.createLoweredBevelBorder());
+        fillColorPanel.setToolTipText("Current fill color for shapes");
+        toolBar.add(fillColorPanel);
+    }
+    
+    /**
+     * Updates the visual color indicator panels
+     */
+    private void updateColorIndicators() {
+        strokeColorPanel.setBackground(currentColor);
+        fillColorPanel.setBackground(currentFillColor);
+        // Force repaint of the color panels
+        strokeColorPanel.repaint();
+        fillColorPanel.repaint();
     }
 
     private void handleKonamiCode(int keyCode) {
