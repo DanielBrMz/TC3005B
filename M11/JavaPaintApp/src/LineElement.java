@@ -1,6 +1,5 @@
 /**
- * Represents a freehand line drawn with the pencil tool.
- * Stores points and renders smooth curves between them.
+ * Enhanced LineElement.java - Pencil strokes with variable stroke width
  */
 import java.awt.*;
 import java.util.ArrayList;
@@ -8,18 +7,40 @@ import java.util.ArrayList;
 public class LineElement extends DrawingElement {
     private ArrayList<Point> points;
     
-    public LineElement(ArrayList<Point> points, Color strokeColor) {
-        super(strokeColor);
-        this.points = new ArrayList<>(points); // Defensive copy
+    /**
+     * Creates a line element with variable stroke width.
+     * This constructor enables artistic expression through line weight variation.
+     */
+    public LineElement(ArrayList<Point> points, Color strokeColor, int strokeWidth) {
+        super(strokeColor, strokeWidth);
+        this.points = new ArrayList<>(points);
     }
     
+    /**
+     * Backward compatibility constructor with default stroke width.
+     */
+    public LineElement(ArrayList<Point> points, Color strokeColor) {
+        this(points, strokeColor, 2);
+    }
+    
+    /**
+     * Enhanced drawing method that respects stroke width settings.
+     * Creates professional-quality line rendering with smooth curves and proper thickness.
+     */
     @Override
     public void draw(Graphics2D g2d) {
         if (points.size() > 1) {
             g2d.setColor(strokeColor);
-            g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             
-            // Connect consecutive points for smooth curves
+            // Create stroke with the specified width and professional appearance
+            g2d.setStroke(new BasicStroke(
+                strokeWidth,                    // Use the stored stroke width
+                BasicStroke.CAP_ROUND,          // Rounded line ends for natural appearance
+                BasicStroke.JOIN_ROUND          // Rounded joints for smooth curves
+            ));
+            
+            // Draw connected line segments for smooth curves
+            // This technique creates natural-looking strokes regardless of stroke width
             for (int i = 0; i < points.size() - 1; i++) {
                 Point p1 = points.get(i);
                 Point p2 = points.get(i + 1);
