@@ -1,6 +1,6 @@
 /**
- * Main drawing canvas with bug fixes for eraser fading and window resize.
- * Handles user interaction and maintains drawing persistence across mode changes.
+ * Professional drawing canvas with variable stroke width and temporal layering.
+ * Handles both vector graphics (lines/shapes) and raster operations (eraser/fill).
  */
 import javax.swing.*;
 import java.awt.*;
@@ -11,14 +11,18 @@ import java.util.Queue;
 import java.util.LinkedList;
 
 public class PaintPanel extends JPanel implements ComponentListener {
+    // Drawing state
     private Color currentColor = Color.BLACK;
     private Color currentFillColor = Color.WHITE;
     private String currentTool = "Pencil";
+    private int currentStrokeWidth = 2;
     
+    // Drawing systems
     private DrawingSystem drawingSystem = new DrawingSystem();
     private BufferedImage persistentImage = null;
     private boolean isInRasterMode = false;
     
+    // Mouse interaction state
     private Point startPoint, endPoint;
     private ArrayList<Point> currentLine = new ArrayList<>();
     private boolean isActivelyDrawing = false;
@@ -29,6 +33,10 @@ public class PaintPanel extends JPanel implements ComponentListener {
         addComponentListener(this);
     }
 
+    /**
+     * Configures mouse event handling for all drawing operations.
+     * Implements left-click only drawing with tool-specific behavior.
+     */
     private void setupMouseHandling() {
         MouseAdapter handler = new MouseAdapter() {
             @Override
@@ -49,6 +57,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
                         currentLine.add(startPoint);
                         isActivelyDrawing = true;
                         break;
+                    // Rectangle and Oval store start point for drag operations
                 }
             }
 
@@ -61,7 +70,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
                     case "Eraser":
                         if (startPoint != null) {
                             eraseLineFromTo(startPoint, endPoint);
-                            startPoint = endPoint;
+                            startPoint = endPoint; // Update for continuous erasing
                         }
                         break;
                     case "Pencil":
@@ -80,21 +89,25 @@ public class PaintPanel extends JPanel implements ComponentListener {
 
                 switch (currentTool) {
                     case "Pencil":
+                        // Convert temporary line to permanent drawing element
                         if (isActivelyDrawing && currentLine.size() > 1) {
-                            drawingSystem.addElement(new LineElement(currentLine, currentColor));
+                            LineElement lineElement = new LineElement(currentLine, currentColor, currentStrokeWidth);
+                            drawingSystem.addElement(lineElement);
                         }
                         isActivelyDrawing = false;
                         currentLine.clear();
                         break;
                     case "Rectangle":
                     case "Oval":
+                        // Create and store completed shape
                         if (startPoint != null && endPoint != null) {
                             Shape shape = createShape();
                             if (shape != null) {
                                 boolean shouldFill = !currentFillColor.equals(Color.WHITE) || 
                                                    !currentFillColor.equals(currentColor);
-                                drawingSystem.addElement(new ShapeElement(
-                                    shape, currentColor, currentFillColor, shouldFill));
+                                ShapeElement shapeElement = new ShapeElement(
+                                    shape, currentColor, currentFillColor, shouldFill, currentStrokeWidth);
+                                drawingSystem.addElement(shapeElement);
                             }
                         }
                         break;
@@ -110,24 +123,34 @@ public class PaintPanel extends JPanel implements ComponentListener {
         addMouseMotionListener(handler);
     }
 
-    // Preserves content when switching to raster operations
+    /**
+     * Converts vector graphics to raster image when pixel operations are needed.
+     * Preserves all existing content while enabling eraser and flood fill tools.
+     */
     private void switchToRasterModePreservingContent() {
         if (!isInRasterMode) {
             ensureRasterImageExists();
             Graphics2D g2 = persistentImage.createGraphics();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             
+            // Render white background
             g2.setColor(Color.WHITE);
             g2.fillRect(0, 0, persistentImage.getWidth(), persistentImage.getHeight());
+            
+            // Transfer all vector content to raster image
             drawingSystem.renderAll(g2, persistentImage.getWidth(), persistentImage.getHeight());
             g2.dispose();
             
+            // Clear vector system since content is now preserved in raster image
             drawingSystem.clear();
             isInRasterMode = true;
         }
     }
 
-    // Creates or resizes raster image while preserving existing content
+    /**
+     * Creates or resizes raster image while preserving existing content.
+     * Handles window resize and initial raster mode setup.
+     */
     private void ensureRasterImageExists() {
         int w = Math.max(getWidth(), 1);
         int h = Math.max(getHeight(), 1);
@@ -138,6 +161,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
             g2.setColor(Color.WHITE);
             g2.fillRect(0, 0, w, h);
             
+            // Copy existing content if available
             if (persistentImage != null) {
                 g2.drawImage(persistentImage, 0, 0, null);
             }
@@ -146,9 +170,14 @@ public class PaintPanel extends JPanel implements ComponentListener {
         }
     }
 
+    /**
+     * Implements flood fill algorithm using queue-based approach.
+     * Fills connected areas of the same color with current stroke color.
+     */
     private void performFloodFill(Point point) {
         switchToRasterModePreservingContent();
 
+        // Bounds checking
         if (point.x < 0 || point.x >= persistentImage.getWidth() || 
             point.y < 0 || point.y >= persistentImage.getHeight()) return;
 
@@ -156,6 +185,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
         int fillColor = currentColor.getRGB();
         if (targetColor == fillColor) return;
 
+        // Queue-based flood fill for better performance than recursive approach
         Queue<Point> queue = new LinkedList<>();
         queue.add(point);
 
@@ -166,6 +196,8 @@ public class PaintPanel extends JPanel implements ComponentListener {
             if (persistentImage.getRGB(p.x, p.y) != targetColor) continue;
 
             persistentImage.setRGB(p.x, p.y, fillColor);
+            
+            // Add adjacent pixels (4-connected)
             queue.add(new Point(p.x + 1, p.y));
             queue.add(new Point(p.x - 1, p.y));
             queue.add(new Point(p.x, p.y + 1));
@@ -174,25 +206,40 @@ public class PaintPanel extends JPanel implements ComponentListener {
         repaint();
     }
 
+    /**
+     * Erases content at point using circular brush scaled to stroke width.
+     */
     private void eraseAtPoint(Point point) {
         if (persistentImage == null) return;
         Graphics2D g2 = persistentImage.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setColor(Color.WHITE);
-        g2.fillOval(point.x - 6, point.y - 6, 12, 12);
+        
+        // Scale eraser size to stroke width with minimum usability threshold
+        int eraserSize = Math.max(currentStrokeWidth * 2, 8);
+        g2.fillOval(point.x - eraserSize/2, point.y - eraserSize/2, eraserSize, eraserSize);
         g2.dispose();
     }
 
+    /**
+     * Erases along drag path for smooth continuous erasing.
+     */
     private void eraseLineFromTo(Point from, Point to) {
         if (persistentImage == null) return;
         Graphics2D g2 = persistentImage.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setColor(Color.WHITE);
-        g2.setStroke(new BasicStroke(12.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        
+        // Scale eraser stroke to current stroke width
+        float eraserWidth = Math.max(currentStrokeWidth * 2.0f, 8.0f);
+        g2.setStroke(new BasicStroke(eraserWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g2.drawLine(from.x, from.y, to.x, to.y);
         g2.dispose();
     }
 
+    /**
+     * Creates geometric shape based on current tool and mouse positions.
+     */
     private Shape createShape() {
         if (startPoint == null || endPoint == null) return null;
         
@@ -206,6 +253,9 @@ public class PaintPanel extends JPanel implements ComponentListener {
             new java.awt.geom.Ellipse2D.Double(x, y, width, height);
     }
 
+    /**
+     * Clears all content and resets canvas to initial state.
+     */
     public void clearAll() {
         drawingSystem.clear();
         persistentImage = null;
@@ -217,6 +267,9 @@ public class PaintPanel extends JPanel implements ComponentListener {
         repaint();
     }
 
+    /**
+     * Draws Konami code easter egg emoji with sunglasses.
+     */
     public void drawCoolEmoji() {
         switchToRasterModePreservingContent();
         Graphics2D g2 = persistentImage.createGraphics();
@@ -227,23 +280,23 @@ public class PaintPanel extends JPanel implements ComponentListener {
 
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Face
+        // Yellow face with gradient
         java.awt.GradientPaint gradient = new java.awt.GradientPaint(
             centerX - size/2, centerY - size/2, new Color(255, 255, 0),
             centerX + size/2, centerY + size/2, new Color(255, 220, 0));
         g2.setPaint(gradient);
         g2.fillOval(centerX - size/2, centerY - size/2, size, size);
 
-        // Highlight
+        // Face highlight
         g2.setColor(new Color(255, 255, 200, 90));
         g2.fillOval(centerX - size/3, centerY - size/3, size/3, size/4);
 
-        // Outline
+        // Face outline
         g2.setColor(Color.BLACK);
         g2.setStroke(new BasicStroke(2.5f));
         g2.drawOval(centerX - size/2, centerY - size/2, size, size);
 
-        // Sunglasses
+        // Sunglasses lenses
         int gw = size / 4, gh = size / 6, gy = centerY - gh;
         g2.fillRoundRect(centerX - gw - 10, gy, gw, gh, 15, 12);
         g2.fillRoundRect(centerX + 10, gy, gw, gh, 15, 12);
@@ -253,13 +306,14 @@ public class PaintPanel extends JPanel implements ComponentListener {
         g2.fillRoundRect(centerX - gw - 5, gy + 3, gw/2, gh/3, 10, 8);
         g2.fillRoundRect(centerX + 15, gy + 3, gw/2, gh/3, 10, 8);
 
-        // Bridge and arms
+        // Sunglasses bridge
         g2.setColor(Color.BLACK);
         g2.setStroke(new BasicStroke(3.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         java.awt.geom.QuadCurve2D bridge = new java.awt.geom.QuadCurve2D.Float(
             centerX - 10, gy + gh/2 - 3, centerX, gy + gh/2 - 8, centerX + 10, gy + gh/2 - 3);
         g2.draw(bridge);
 
+        // Sunglasses arms
         g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         java.awt.geom.QuadCurve2D leftArm = new java.awt.geom.QuadCurve2D.Float(
             centerX - gw - 10, gy + gh/2, centerX - gw - 20, gy + gh/2 + 5, centerX - gw - 30, gy + gh + 10);
@@ -279,23 +333,26 @@ public class PaintPanel extends JPanel implements ComponentListener {
         repaint();
     }
 
+    /**
+     * Main rendering method with stroke-aware preview and feedback.
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Render persistent content
+        // Render persistent content (raster or vector)
         if (isInRasterMode && persistentImage != null) {
             g2d.drawImage(persistentImage, 0, 0, null);
         } else {
             drawingSystem.renderAll(g2d, getWidth(), getHeight());
         }
 
-        // Real-time feedback
+        // Real-time pencil feedback with current stroke width
         if (isActivelyDrawing && currentLine.size() > 1) {
             g2d.setColor(currentColor);
-            g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2d.setStroke(new BasicStroke(currentStrokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             for (int i = 0; i < currentLine.size() - 1; i++) {
                 Point p1 = currentLine.get(i);
                 Point p2 = currentLine.get(i + 1);
@@ -303,37 +360,55 @@ public class PaintPanel extends JPanel implements ComponentListener {
             }
         }
 
-        // Shape preview
+        // Shape preview with stroke width and fill preview
         if (startPoint != null && endPoint != null &&
             (currentTool.equals("Rectangle") || currentTool.equals("Oval"))) {
             
             Shape preview = createShape();
             if (preview != null) {
+                // Semi-transparent fill preview
                 boolean shouldShowFill = !currentFillColor.equals(Color.WHITE) || 
                                        !currentFillColor.equals(currentColor);
-                
                 if (shouldShowFill) {
                     g2d.setColor(new Color(currentFillColor.getRed(), 
                         currentFillColor.getGreen(), currentFillColor.getBlue(), 100));
                     g2d.fill(preview);
                 }
                 
+                // Dashed outline preview with current stroke width
                 g2d.setColor(currentColor);
-                g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_BUTT, 
+                g2d.setStroke(new BasicStroke(currentStrokeWidth, BasicStroke.CAP_BUTT, 
                     BasicStroke.JOIN_MITER, 10.0f, new float[]{5.0f}, 0.0f));
                 g2d.draw(preview);
             }
         }
     }
 
-    public void setCurrentColor(Color color) { this.currentColor = color; }
-    public void setCurrentFillColor(Color color) { this.currentFillColor = color; }
-    public void setCurrentTool(String tool) { this.currentTool = tool; }
+    // Configuration setters
+    public void setCurrentColor(Color color) { 
+        this.currentColor = color; 
+    }
+    
+    public void setCurrentFillColor(Color color) { 
+        this.currentFillColor = color; 
+    }
+    
+    public void setCurrentTool(String tool) { 
+        this.currentTool = tool; 
+    }
+    
+    public void setStrokeWidth(int strokeWidth) { 
+        this.currentStrokeWidth = Math.max(1, strokeWidth); 
+    }
 
-    // Resize handling preserves all content
+    /**
+     * Handles window resize while preserving all drawing content.
+     * Expands canvas size to accommodate both new dimensions and existing content.
+     */
     @Override
     public void componentResized(ComponentEvent e) {
         if (isInRasterMode && persistentImage != null) {
+            // Create expanded canvas that preserves all existing content
             int newW = Math.max(getWidth(), persistentImage.getWidth());
             int newH = Math.max(getHeight(), persistentImage.getHeight());
             
