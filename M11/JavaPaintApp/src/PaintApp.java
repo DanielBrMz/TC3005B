@@ -32,7 +32,7 @@ public class PaintApp extends JFrame {
     private ArrayList<Integer> keySequence = new ArrayList<>();
 
     public PaintApp() {
-        super("Java Paint App - Professional Edition with Icons");
+        super("Java Paint App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1100, 750); // Slightly larger to accommodate new controls
         setLayout(new BorderLayout());
