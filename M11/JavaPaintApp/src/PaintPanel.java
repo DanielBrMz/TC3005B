@@ -332,6 +332,7 @@ public class PaintPanel extends JPanel implements ComponentListener {
         g2.dispose();
         repaint();
     }
+    
 
     /**
      * Main rendering method with stroke-aware preview and feedback.
