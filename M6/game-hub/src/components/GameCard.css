@@ -2,7 +2,6 @@
   text-decoration: none;
   color: inherit;
   display: block;
-  height: 100%;
 }
 
 .game-card {
@@ -83,7 +82,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  margin-top: auto;
+  margin-bottom: 0.8rem;
 }
 
 .game-tag {
@@ -92,6 +91,24 @@
   padding: 0.2rem 0.4rem;
   border-radius: 2px;
   font-size: 0.65rem;
+}
+
+/* New styles for saved items buttons in cards */
+.game-card-actions {
+  padding: 0.8rem;
+  background-color: #1f3747;
+  border-top: 1px solid #2a475e;
+  margin-top: auto;
+}
+
+/* Override hover effects when clicking on buttons inside cards */
+.game-card-actions:hover ~ .game-card-link .game-card-image img,
+.game-card-actions * {
+  pointer-events: auto;
+}
+
+.game-card:hover .game-card-actions {
+  background-color: #2a475e;
 }
 
 /* Media query for mobile responsiveness */
@@ -112,5 +129,9 @@
   .game-tag {
     font-size: 0.6rem;
     padding: 0.15rem 0.3rem;
+  }
+
+  .game-card-actions {
+    padding: 0.6rem;
   }
 }
