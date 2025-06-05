@@ -1,0 +1,204 @@
+.saved-items-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.saved-item-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  justify-content: center;
+  min-width: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.saved-item-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Played Games Button */
+.saved-item-button.played {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(39, 174, 96, 0.3);
+}
+
+.saved-item-button.played:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4);
+}
+
+.saved-item-button.played.inactive {
+  background: transparent;
+  border-color: #27ae60;
+  color: #27ae60;
+  box-shadow: none;
+}
+
+.saved-item-button.played.inactive:hover:not(:disabled) {
+  background: rgba(39, 174, 96, 0.1);
+}
+
+/* Queued Games Button */
+.saved-item-button.queued {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(243, 156, 18, 0.3);
+}
+
+.saved-item-button.queued:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(243, 156, 18, 0.4);
+}
+
+.saved-item-button.queued.inactive {
+  background: transparent;
+  border-color: #f39c12;
+  color: #f39c12;
+  box-shadow: none;
+}
+
+.saved-item-button.queued.inactive:hover:not(:disabled) {
+  background: rgba(243, 156, 18, 0.1);
+}
+
+/* Wishlist Button */
+.saved-item-button.wishlist {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+}
+
+.saved-item-button.wishlist:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.4);
+}
+
+.saved-item-button.wishlist.inactive {
+  background: transparent;
+  border-color: #e74c3c;
+  color: #e74c3c;
+  box-shadow: none;
+}
+
+.saved-item-button.wishlist.inactive:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 0.1);
+}
+
+/* Loading state */
+.button-loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-left-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Compact mode for cards */
+.saved-items-buttons.compact {
+  justify-content: center;
+}
+
+.saved-items-buttons.compact .saved-item-button {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  min-width: 80px;
+}
+
+/* Success feedback animation */
+.saved-item-button.success {
+  animation: successPulse 0.6s ease-out;
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Login prompt */
+.login-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(26, 159, 255, 0.1) 0%, rgba(102, 192, 244, 0.05) 100%);
+  border: 1px solid rgba(26, 159, 255, 0.2);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.login-prompt-text {
+  color: #c7d5e0;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.login-prompt-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #1a9fff 0%, #66c0f4 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(26, 159, 255, 0.3);
+}
+
+.login-prompt-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(26, 159, 255, 0.4);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .saved-items-buttons {
+    gap: 0.5rem;
+  }
+
+  .saved-item-button {
+    flex: 1;
+    min-width: unset;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .saved-items-buttons.compact .saved-item-button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .login-prompt {
+    padding: 1rem;
+  }
+
+  .login-prompt-text {
+    font-size: 0.85rem;
+  }
+}
