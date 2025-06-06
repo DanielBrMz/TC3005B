@@ -1,4 +1,6 @@
 import React, {
+  createContext,
+  useContext,
   useState,
   useEffect,
   type ReactNode,
@@ -6,9 +8,11 @@ import React, {
 import { useAuth } from "../hooks/useAuth";
 import { savedItemsService } from "../services/savedItemsService";
 import type { SavedGames, SavedItemsContextType } from "../types/savedItems";
-import { SavedItemsContext } from "../hooks/useSavedItems";
 
-
+// eslint-disable-next-line react-refresh/only-export-components
+export const SavedItemsContext = createContext<
+  SavedItemsContextType | undefined
+>(undefined);
 
 interface SavedItemsProviderProps {
   children: ReactNode;
@@ -38,6 +42,7 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({
       });
       setLoading(false);
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
@@ -210,5 +215,11 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({
   );
 };
 
-
-
+// eslint-disable-next-line react-refresh/only-export-components
+export const useSavedItems = () => {
+  const context = useContext(SavedItemsContext);
+  if (context === undefined) {
+    throw new Error("useSavedItems must be used within a SavedItemsProvider");
+  }
+  return context;
+};

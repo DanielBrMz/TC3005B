@@ -1,12 +1,13 @@
-import { useContext, createContext } from "react";
-import type { SavedItemsContextType } from "../types/savedItems";
-
-export const SavedItemsContext = createContext<SavedItemsContextType | undefined>(undefined);
+import { useContext } from 'react';
+import { SavedItemsContext } from '../contexts/SavedItemsContext';
 
 export const useSavedItems = () => {
   const context = useContext(SavedItemsContext);
   if (context === undefined) {
-    throw new Error("useSavedItems must be used within a SavedItemsProvider");
+    throw new Error('useSavedItems must be used within a SavedItemsProvider');
   }
   return context;
 };
+
+// Re-export the context for consistency
+export { SavedItemsProvider } from '../contexts/SavedItemsContext';
