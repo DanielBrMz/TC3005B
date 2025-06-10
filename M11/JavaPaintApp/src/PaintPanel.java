@@ -1,9 +1,7 @@
-/*
- * Java Paint panel with enhanced features
- * - Supports Pencil, Rectangle, Oval, Eraser, Fill tools
- * - Converts vector graphics to image buffer for eraser and fill
+/**
+ * Professional drawing canvas with variable stroke width and temporal layering.
+ * Handles both vector graphics (lines/shapes) and raster operations (eraser/fill).
  */
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -11,507 +9,421 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.LinkedList;
-import java.awt.GradientPaint;
-import java.awt.geom.QuadCurve2D;
-import java.awt.geom.CubicCurve2D;
 
 public class PaintPanel extends JPanel implements ComponentListener {
+    // Drawing state
     private Color currentColor = Color.BLACK;
+    private Color currentFillColor = Color.WHITE;
     private String currentTool = "Pencil";
-    private boolean hasBeenConverted = false; // Track if we've converted to image buffer
-
-    // For storing the image
-    private BufferedImage image;
-
-    // For all shapes
-    private Point startPoint;
-    private Point endPoint;
-
-    // For pencil and eraser
-    private ArrayList<ArrayList<Point>> lines = new ArrayList<>();
-    private ArrayList<Color> lineColors = new ArrayList<>();
-
-    // For shapes
-    private ArrayList<Shape> shapes = new ArrayList<>();
-    private ArrayList<Color> shapeColors = new ArrayList<>();
+    private int currentStrokeWidth = 2;
+    
+    // Drawing systems
+    private DrawingSystem drawingSystem = new DrawingSystem();
+    private BufferedImage persistentImage = null;
+    private boolean isInRasterMode = false;
+    
+    // Mouse interaction state
+    private Point startPoint, endPoint;
+    private ArrayList<Point> currentLine = new ArrayList<>();
+    private boolean isActivelyDrawing = false;
 
     public PaintPanel() {
         setBackground(Color.WHITE);
+        setupMouseHandling();
+        addComponentListener(this);
+    }
 
-        // Create a new list for the current drawing
-        lines.add(new ArrayList<>());
-        lineColors.add(currentColor);
-
-        // Add mouse listeners
-        MouseAdapter mouseAdapter = new MouseAdapter() {
+    /**
+     * Configures mouse event handling for all drawing operations.
+     * Implements left-click only drawing with tool-specific behavior.
+     */
+    private void setupMouseHandling() {
+        MouseAdapter handler = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e)) return;
                 startPoint = e.getPoint();
 
-                if (currentTool.equals("Fill")) {
-                    // Perform flood fill
-                    floodFill(e.getPoint());
-                } else if (currentTool.equals("Eraser")) {
-                    // For eraser, convert to image buffer only on first use
-                    if (!hasBeenConverted) {
-                        convertToImageBuffer();
-                        hasBeenConverted = true;
-                    }
-                    eraseAtPoint(e.getPoint());
-                } else if (currentTool.equals("Pencil")) {
-                    // Create a new line for pencil
-                    ArrayList<Point> newLine = new ArrayList<>();
-                    newLine.add(startPoint);
-                    lines.add(newLine);
-                    lineColors.add(currentColor);
+                switch (currentTool) {
+                    case "Fill":
+                        performFloodFill(e.getPoint());
+                        break;
+                    case "Eraser":
+                        switchToRasterModePreservingContent();
+                        eraseAtPoint(e.getPoint());
+                        break;
+                    case "Pencil":
+                        currentLine.clear();
+                        currentLine.add(startPoint);
+                        isActivelyDrawing = true;
+                        break;
+                    // Rectangle and Oval store start point for drag operations
                 }
             }
 
             @Override
             public void mouseDragged(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e)) return;
                 endPoint = e.getPoint();
 
-                if (currentTool.equals("Eraser")) {
-                    // Erase along the drag path with line drawing for smoother erasing
-                    if (startPoint != null) {
-                        eraseLineFromTo(startPoint, endPoint);
-                        startPoint = endPoint; // Update start point for continuous erasing
-                    }
-                } else if (currentTool.equals("Pencil")) {
-                    // Add point to the current line
-                    lines.get(lines.size() - 1).add(endPoint);
+                switch (currentTool) {
+                    case "Eraser":
+                        if (startPoint != null) {
+                            eraseLineFromTo(startPoint, endPoint);
+                            startPoint = endPoint; // Update for continuous erasing
+                        }
+                        break;
+                    case "Pencil":
+                        if (isActivelyDrawing) {
+                            currentLine.add(endPoint);
+                        }
+                        break;
                 }
-
                 repaint();
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e)) return;
                 endPoint = e.getPoint();
 
-                if (!currentTool.equals("Pencil") && !currentTool.equals("Eraser") && !currentTool.equals("Fill")) {
-                    // Create a shape (only for Rectangle and Oval tools, not Eraser)
-                    Shape newShape = createShape();
-                    if (newShape != null) {
-                        shapes.add(newShape);
-                        shapeColors.add(currentColor);
-                    }
+                switch (currentTool) {
+                    case "Pencil":
+                        // Convert temporary line to permanent drawing element
+                        if (isActivelyDrawing && currentLine.size() > 1) {
+                            LineElement lineElement = new LineElement(currentLine, currentColor, currentStrokeWidth);
+                            drawingSystem.addElement(lineElement);
+                        }
+                        isActivelyDrawing = false;
+                        currentLine.clear();
+                        break;
+                    case "Rectangle":
+                    case "Oval":
+                        // Create and store completed shape
+                        if (startPoint != null && endPoint != null) {
+                            Shape shape = createShape();
+                            if (shape != null) {
+                                boolean shouldFill = !currentFillColor.equals(Color.WHITE) || 
+                                                   !currentFillColor.equals(currentColor);
+                                ShapeElement shapeElement = new ShapeElement(
+                                    shape, currentColor, currentFillColor, shouldFill, currentStrokeWidth);
+                                drawingSystem.addElement(shapeElement);
+                            }
+                        }
+                        break;
                 }
 
+                startPoint = null;
+                endPoint = null;
                 repaint();
             }
         };
 
-        addMouseListener(mouseAdapter);
-        addMouseMotionListener(mouseAdapter);
-
-        // Add component listener for resize events
-        addComponentListener(this);
+        addMouseListener(handler);
+        addMouseMotionListener(handler);
     }
 
     /**
-     * Converts all current vector graphics to the image buffer and clears vector arrays
+     * Converts vector graphics to raster image when pixel operations are needed.
+     * Preserves all existing content while enabling eraser and flood fill tools.
      */
-    private void convertToImageBuffer() {
-        // Create or update the image buffer
-        if (image == null || image.getWidth() != getWidth() || image.getHeight() != getHeight()) {
-            image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+    private void switchToRasterModePreservingContent() {
+        if (!isInRasterMode) {
+            ensureRasterImageExists();
+            Graphics2D g2 = persistentImage.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Render white background
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, persistentImage.getWidth(), persistentImage.getHeight());
+            
+            // Transfer all vector content to raster image
+            drawingSystem.renderAll(g2, persistentImage.getWidth(), persistentImage.getHeight());
+            g2.dispose();
+            
+            // Clear vector system since content is now preserved in raster image
+            drawingSystem.clear();
+            isInRasterMode = true;
         }
-        
-        // Draw all current content to the image
-        Graphics2D g2 = image.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        paintAllToGraphics(g2);
-        g2.dispose();
-        
-        // Clear the vector graphics arrays since they're now in the image buffer
-        lines.clear();
-        lineColors.clear();
-        shapes.clear();
-        shapeColors.clear();
-        
-        // Start fresh for new drawings
-        lines.add(new ArrayList<>());
-        lineColors.add(currentColor);
     }
 
     /**
-     * Ensures that the image buffer exists and contains current content (for flood fill)
+     * Creates or resizes raster image while preserving existing content.
+     * Handles window resize and initial raster mode setup.
      */
-    private void ensureImageExists() {
-        if (image == null || image.getWidth() != getWidth() || image.getHeight() != getHeight()) {
-            // Create an image the size of the panel
-            image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+    private void ensureRasterImageExists() {
+        int w = Math.max(getWidth(), 1);
+        int h = Math.max(getHeight(), 1);
+        
+        if (persistentImage == null || persistentImage.getWidth() != w || persistentImage.getHeight() != h) {
+            BufferedImage newImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = newImage.createGraphics();
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, w, h);
+            
+            // Copy existing content if available
+            if (persistentImage != null) {
+                g2.drawImage(persistentImage, 0, 0, null);
+            }
+            g2.dispose();
+            persistentImage = newImage;
         }
-        
-        // Always update the image with current content before flood fill
-        Graphics2D g2 = image.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        paintAllToGraphics(g2);
-        g2.dispose();
     }
 
     /**
-     * Erases content at the specified point with a brush-like effect
+     * Implements flood fill algorithm using queue-based approach.
+     * Fills connected areas of the same color with current stroke color.
      */
-    private void eraseAtPoint(Point point) {
-        if (image == null) return;
-        
-        Graphics2D g2 = image.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
-        // Set up eraser brush - white color with a circular brush
-        g2.setColor(Color.WHITE);
-        
-        // Erase by drawing a small circle at the point
-        int brushSize = 12;
-        g2.fillOval(point.x - brushSize/2, point.y - brushSize/2, brushSize, brushSize);
-        
-        g2.dispose();
-    }
+    private void performFloodFill(Point point) {
+        switchToRasterModePreservingContent();
 
-    /**
-     * Erases content along a line from point A to point B for smooth erasing
-     */
-    private void eraseLineFromTo(Point from, Point to) {
-        if (image == null) return;
-        
-        Graphics2D g2 = image.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
-        // Set up eraser brush
-        g2.setColor(Color.WHITE);
-        g2.setStroke(new BasicStroke(12.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        
-        // Draw a white line to erase
-        g2.drawLine(from.x, from.y, to.x, to.y);
-        
-        g2.dispose();
-    }
-    /**
-     * Clears all drawn content from the canvas
-     */
-    public void clearAll() {
-        // Clear all lines
-        lines.clear();
-        lineColors.clear();
-        
-        // Clear all shapes
-        shapes.clear();
-        shapeColors.clear();
-        
-        // Clear the image buffer
-        image = null;
-        
-        // Reset conversion flag
-        hasBeenConverted = false;
-        
-        // Create a new empty line list
-        lines.add(new ArrayList<>());
-        lineColors.add(currentColor);
-        
-        // Repaint the panel
-        repaint();
-    }
+        // Bounds checking
+        if (point.x < 0 || point.x >= persistentImage.getWidth() || 
+            point.y < 0 || point.y >= persistentImage.getHeight()) return;
 
-    /**
-     * Performs a flood fill starting at the specified point
-     */
-    private void floodFill(Point point) {
-        // First, we need to ensure we have an image to work with
-        ensureImageExists();
+        int targetColor = persistentImage.getRGB(point.x, point.y);
+        int fillColor = currentColor.getRGB();
+        if (targetColor == fillColor) return;
 
-        // Safety check for point being within bounds
-        if (point.x < 0 || point.x >= image.getWidth() || point.y < 0 || point.y >= image.getHeight()) {
-            return;
-        }
-
-        // Get the color at the target point
-        int targetColor = image.getRGB(point.x, point.y);
-
-        // Don't fill if we're clicking on the same color we want to fill with
-        if (targetColor == currentColor.getRGB()) {
-            return;
-        }
-
-        // Use a queue for the flood fill algorithm
+        // Queue-based flood fill for better performance than recursive approach
         Queue<Point> queue = new LinkedList<>();
         queue.add(point);
 
         while (!queue.isEmpty()) {
             Point p = queue.remove();
+            if (p.x < 0 || p.x >= persistentImage.getWidth() || 
+                p.y < 0 || p.y >= persistentImage.getHeight()) continue;
+            if (persistentImage.getRGB(p.x, p.y) != targetColor) continue;
 
-            // Check if this point is within bounds and has the target color
-            if (p.x < 0 || p.x >= image.getWidth() || p.y < 0 || p.y >= image.getHeight()) {
-                continue;
-            }
-
-            if (image.getRGB(p.x, p.y) != targetColor) {
-                continue;
-            }
-
-            // Fill this pixel
-            image.setRGB(p.x, p.y, currentColor.getRGB());
-
-            // Add adjacent pixels to the queue
+            persistentImage.setRGB(p.x, p.y, fillColor);
+            
+            // Add adjacent pixels (4-connected)
             queue.add(new Point(p.x + 1, p.y));
             queue.add(new Point(p.x - 1, p.y));
             queue.add(new Point(p.x, p.y + 1));
             queue.add(new Point(p.x, p.y - 1));
         }
-
         repaint();
     }
 
     /**
-     * Paints all content to the given graphics context
+     * Erases content at point using circular brush scaled to stroke width.
      */
-    private void paintAllToGraphics(Graphics2D g2d) {
-        // Clear with white background
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(0, 0, getWidth(), getHeight());
-
-        // Draw all completed lines
-        for (int i = 0; i < lines.size(); i++) {
-            ArrayList<Point> line = lines.get(i);
-            if (line.size() > 1) {
-                g2d.setColor(lineColors.get(i));
-                g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                for (int j = 0; j < line.size() - 1; j++) {
-                    Point p1 = line.get(j);
-                    Point p2 = line.get(j + 1);
-                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-                }
-            }
-        }
-
-        // Draw all shapes
-        for (int i = 0; i < shapes.size(); i++) {
-            g2d.setColor(shapeColors.get(i));
-            g2d.setStroke(new BasicStroke(2.0f));
-            g2d.draw(shapes.get(i));
-        }
-    }
-
-    /**
-     * Draws a cool emoji (😎) face on the canvas with enhanced details
-     */
-    public void drawCoolEmoji() {
-        // First, ensure we have an image to draw on
-        if (image == null) {
-            image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2 = image.createGraphics();
-            g2.setColor(Color.WHITE);
-            g2.fillRect(0, 0, getWidth(), getHeight());
-            paintAllToGraphics(g2);
-            g2.dispose();
-        }
-
-        // Get graphics context for drawing
-        Graphics2D g2 = image.createGraphics();
-
-        // Calculate center and size based on panel dimensions
-        int centerX = getWidth() / 2;
-        int centerY = getHeight() / 2;
-        int faceSize = Math.min(getWidth(), getHeight()) / 3;
-
-        // Set rendering hints for smoother drawing
+    private void eraseAtPoint(Point point) {
+        if (persistentImage == null) return;
+        Graphics2D g2 = persistentImage.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-
-        // Draw yellow face with gradient for 3D effect
-        GradientPaint yellowGradient = new GradientPaint(
-                centerX - faceSize / 2, centerY - faceSize / 2,
-                new Color(255, 255, 0), // Bright yellow
-                centerX + faceSize / 2, centerY + faceSize / 2,
-                new Color(255, 220, 0) // Slightly darker yellow for dimension
-        );
-        g2.setPaint(yellowGradient);
-        g2.fillOval(centerX - faceSize / 2, centerY - faceSize / 2, faceSize, faceSize);
-
-        // Draw subtle highlight for 3D effect
-        g2.setColor(new Color(255, 255, 200, 90));
-        g2.fillOval(centerX - faceSize / 3, centerY - faceSize / 3, faceSize / 3, faceSize / 4);
-
-        // Draw black outline
-        g2.setColor(Color.BLACK);
-        g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g2.drawOval(centerX - faceSize / 2, centerY - faceSize / 2, faceSize, faceSize);
-
-        // Draw improved sunglasses
-        int glassWidth = faceSize / 4;
-        int glassHeight = faceSize / 6;
-        int glassY = centerY - glassHeight;
-
-        // Sunglasses frame
-        g2.setColor(Color.BLACK);
-
-        // Left lens - more oval shaped
-        g2.fillRoundRect(centerX - glassWidth - 10, glassY,
-                glassWidth, glassHeight, 15, 12);
-
-        // Right lens - more oval shaped
-        g2.fillRoundRect(centerX + 10, glassY,
-                glassWidth, glassHeight, 15, 12);
-
-        // Add blue-ish reflective highlight in lenses
-        g2.setColor(new Color(100, 180, 255, 80));
-        g2.fillRoundRect(centerX - glassWidth - 5, glassY + 3,
-                glassWidth / 2, glassHeight / 3, 10, 8);
-        g2.fillRoundRect(centerX + 15, glassY + 3,
-                glassWidth / 2, glassHeight / 3, 10, 8);
-
-        // Bridge connecting the lenses (curved a bit)
-        g2.setColor(Color.BLACK);
-        g2.setStroke(new BasicStroke(3.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-        // Curved bridge
-        QuadCurve2D bridge = new QuadCurve2D.Float(
-                centerX - 10, glassY + glassHeight / 2 - 3,
-                centerX, glassY + glassHeight / 2 - 8,
-                centerX + 10, glassY + glassHeight / 2 - 3);
-        g2.draw(bridge);
-
-        // Temple arms (the parts that go over the ears) - slightly curved
-        g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-        // Left temple - curved outward
-        QuadCurve2D leftTemple = new QuadCurve2D.Float(
-                centerX - glassWidth - 10, glassY + glassHeight / 2,
-                centerX - glassWidth - 20, glassY + glassHeight / 2 + 5,
-                centerX - glassWidth - 30, glassY + glassHeight + 10);
-        g2.draw(leftTemple);
-
-        // Right temple - curved outward
-        QuadCurve2D rightTemple = new QuadCurve2D.Float(
-                centerX + glassWidth + 10, glassY + glassHeight / 2,
-                centerX + glassWidth + 20, glassY + glassHeight / 2 + 5,
-                centerX + glassWidth + 30, glassY + glassHeight + 10);
-        g2.draw(rightTemple);
-
-        // Draw smile - smoother, more natural curve
-        int smileWidth = faceSize / 2;
-        int smileHeight = faceSize / 6;
-        int smileY = centerY + faceSize / 8;
-
-        // Using a curved shape for the smile
-        g2.setColor(Color.BLACK);
-        g2.setStroke(new BasicStroke(3.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-        // Create a smoother smile with cubic curve
-        CubicCurve2D smile = new CubicCurve2D.Double(
-                centerX - smileWidth / 2, smileY + smileHeight / 2,
-                centerX - smileWidth / 4, smileY + smileHeight,
-                centerX + smileWidth / 4, smileY + smileHeight,
-                centerX + smileWidth / 2, smileY + smileHeight / 2);
-        g2.draw(smile);
-
-        g2.dispose();
-        repaint();
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
+        g2.setColor(Color.WHITE);
         
-        // Enable antialiasing for smoother drawing
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // If we have an image from eraser, flood fill, or emoji operations, draw it
-        if (image != null) {
-            g2d.drawImage(image, 0, 0, null);
-        } else {
-            // If no image exists, draw everything normally using vector graphics
-            paintAllToGraphics(g2d);
-        }
-
-        // ALWAYS draw pencil lines on top for real-time drawing (regardless of image buffer)
-        for (int i = 0; i < lines.size(); i++) {
-            ArrayList<Point> line = lines.get(i);
-            if (line.size() > 1) {
-                g2d.setColor(lineColors.get(i));
-                g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                for (int j = 0; j < line.size() - 1; j++) {
-                    Point p1 = line.get(j);
-                    Point p2 = line.get(j + 1);
-                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-                }
-            }
-        }
-
-        // ALWAYS draw shapes on top for real-time drawing (regardless of image buffer)
-        for (int i = 0; i < shapes.size(); i++) {
-            g2d.setColor(shapeColors.get(i));
-            g2d.setStroke(new BasicStroke(2.0f));
-            g2d.draw(shapes.get(i));
-        }
-
-        // Draw current shape preview (only for Rectangle and Oval tools)
-        if (startPoint != null && endPoint != null &&
-                !currentTool.equals("Pencil") && !currentTool.equals("Eraser") && !currentTool.equals("Fill")) {
-            g2d.setColor(currentColor);
-            g2d.setStroke(new BasicStroke(2.0f));
-            Shape previewShape = createShape();
-            if (previewShape != null) {
-                g2d.draw(previewShape);
-            }
-        }
+        // Scale eraser size to stroke width with minimum usability threshold
+        int eraserSize = Math.max(currentStrokeWidth * 2, 8);
+        g2.fillOval(point.x - eraserSize/2, point.y - eraserSize/2, eraserSize, eraserSize);
+        g2.dispose();
     }
 
+    /**
+     * Erases along drag path for smooth continuous erasing.
+     */
+    private void eraseLineFromTo(Point from, Point to) {
+        if (persistentImage == null) return;
+        Graphics2D g2 = persistentImage.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(Color.WHITE);
+        
+        // Scale eraser stroke to current stroke width
+        float eraserWidth = Math.max(currentStrokeWidth * 2.0f, 8.0f);
+        g2.setStroke(new BasicStroke(eraserWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.drawLine(from.x, from.y, to.x, to.y);
+        g2.dispose();
+    }
+
+    /**
+     * Creates geometric shape based on current tool and mouse positions.
+     */
     private Shape createShape() {
+        if (startPoint == null || endPoint == null) return null;
+        
         int x = Math.min(startPoint.x, endPoint.x);
         int y = Math.min(startPoint.y, endPoint.y);
         int width = Math.abs(endPoint.x - startPoint.x);
         int height = Math.abs(endPoint.y - startPoint.y);
 
-        switch (currentTool) {
-            case "Rectangle":
-                return new Rectangle(x, y, width, height);
-            case "Oval":
-                return new java.awt.geom.Ellipse2D.Double(x, y, width, height);
-            default:
-                return null;
+        return currentTool.equals("Rectangle") ? 
+            new Rectangle(x, y, width, height) :
+            new java.awt.geom.Ellipse2D.Double(x, y, width, height);
+    }
+
+    /**
+     * Clears all content and resets canvas to initial state.
+     */
+    public void clearAll() {
+        drawingSystem.clear();
+        persistentImage = null;
+        isInRasterMode = false;
+        isActivelyDrawing = false;
+        currentLine.clear();
+        startPoint = null;
+        endPoint = null;
+        repaint();
+    }
+
+    /**
+     * Draws Konami code easter egg emoji with sunglasses.
+     */
+    public void drawCoolEmoji() {
+        switchToRasterModePreservingContent();
+        Graphics2D g2 = persistentImage.createGraphics();
+        
+        int centerX = getWidth() / 2;
+        int centerY = getHeight() / 2;
+        int size = Math.min(getWidth(), getHeight()) / 3;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Yellow face with gradient
+        java.awt.GradientPaint gradient = new java.awt.GradientPaint(
+            centerX - size/2, centerY - size/2, new Color(255, 255, 0),
+            centerX + size/2, centerY + size/2, new Color(255, 220, 0));
+        g2.setPaint(gradient);
+        g2.fillOval(centerX - size/2, centerY - size/2, size, size);
+
+        // Face highlight
+        g2.setColor(new Color(255, 255, 200, 90));
+        g2.fillOval(centerX - size/3, centerY - size/3, size/3, size/4);
+
+        // Face outline
+        g2.setColor(Color.BLACK);
+        g2.setStroke(new BasicStroke(2.5f));
+        g2.drawOval(centerX - size/2, centerY - size/2, size, size);
+
+        // Sunglasses lenses
+        int gw = size / 4, gh = size / 6, gy = centerY - gh;
+        g2.fillRoundRect(centerX - gw - 10, gy, gw, gh, 15, 12);
+        g2.fillRoundRect(centerX + 10, gy, gw, gh, 15, 12);
+
+        // Lens highlights
+        g2.setColor(new Color(100, 180, 255, 80));
+        g2.fillRoundRect(centerX - gw - 5, gy + 3, gw/2, gh/3, 10, 8);
+        g2.fillRoundRect(centerX + 15, gy + 3, gw/2, gh/3, 10, 8);
+
+        // Sunglasses bridge
+        g2.setColor(Color.BLACK);
+        g2.setStroke(new BasicStroke(3.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        java.awt.geom.QuadCurve2D bridge = new java.awt.geom.QuadCurve2D.Float(
+            centerX - 10, gy + gh/2 - 3, centerX, gy + gh/2 - 8, centerX + 10, gy + gh/2 - 3);
+        g2.draw(bridge);
+
+        // Sunglasses arms
+        g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        java.awt.geom.QuadCurve2D leftArm = new java.awt.geom.QuadCurve2D.Float(
+            centerX - gw - 10, gy + gh/2, centerX - gw - 20, gy + gh/2 + 5, centerX - gw - 30, gy + gh + 10);
+        java.awt.geom.QuadCurve2D rightArm = new java.awt.geom.QuadCurve2D.Float(
+            centerX + gw + 10, gy + gh/2, centerX + gw + 20, gy + gh/2 + 5, centerX + gw + 30, gy + gh + 10);
+        g2.draw(leftArm);
+        g2.draw(rightArm);
+
+        // Smile
+        int sw = size / 2, sh = size / 6, sy = centerY + size / 8;
+        java.awt.geom.CubicCurve2D smile = new java.awt.geom.CubicCurve2D.Double(
+            centerX - sw/2, sy + sh/2, centerX - sw/4, sy + sh,
+            centerX + sw/4, sy + sh, centerX + sw/2, sy + sh/2);
+        g2.draw(smile);
+
+        g2.dispose();
+        repaint();
+    }
+    
+
+    /**
+     * Main rendering method with stroke-aware preview and feedback.
+     */
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Render persistent content (raster or vector)
+        if (isInRasterMode && persistentImage != null) {
+            g2d.drawImage(persistentImage, 0, 0, null);
+        } else {
+            drawingSystem.renderAll(g2d, getWidth(), getHeight());
+        }
+
+        // Real-time pencil feedback with current stroke width
+        if (isActivelyDrawing && currentLine.size() > 1) {
+            g2d.setColor(currentColor);
+            g2d.setStroke(new BasicStroke(currentStrokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            for (int i = 0; i < currentLine.size() - 1; i++) {
+                Point p1 = currentLine.get(i);
+                Point p2 = currentLine.get(i + 1);
+                g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+            }
+        }
+
+        // Shape preview with stroke width and fill preview
+        if (startPoint != null && endPoint != null &&
+            (currentTool.equals("Rectangle") || currentTool.equals("Oval"))) {
+            
+            Shape preview = createShape();
+            if (preview != null) {
+                // Semi-transparent fill preview
+                boolean shouldShowFill = !currentFillColor.equals(Color.WHITE) || 
+                                       !currentFillColor.equals(currentColor);
+                if (shouldShowFill) {
+                    g2d.setColor(new Color(currentFillColor.getRed(), 
+                        currentFillColor.getGreen(), currentFillColor.getBlue(), 100));
+                    g2d.fill(preview);
+                }
+                
+                // Dashed outline preview with current stroke width
+                g2d.setColor(currentColor);
+                g2d.setStroke(new BasicStroke(currentStrokeWidth, BasicStroke.CAP_BUTT, 
+                    BasicStroke.JOIN_MITER, 10.0f, new float[]{5.0f}, 0.0f));
+                g2d.draw(preview);
+            }
         }
     }
 
-    public void setCurrentColor(Color color) {
-        this.currentColor = color;
+    // Configuration setters
+    public void setCurrentColor(Color color) { 
+        this.currentColor = color; 
+    }
+    
+    public void setCurrentFillColor(Color color) { 
+        this.currentFillColor = color; 
+    }
+    
+    public void setCurrentTool(String tool) { 
+        this.currentTool = tool; 
+    }
+    
+    public void setStrokeWidth(int strokeWidth) { 
+        this.currentStrokeWidth = Math.max(1, strokeWidth); 
     }
 
-    public void setCurrentTool(String tool) {
-        this.currentTool = tool;
-    }
-
-    // ComponentListener methods
+    /**
+     * Handles window resize while preserving all drawing content.
+     * Expands canvas size to accommodate both new dimensions and existing content.
+     */
     @Override
     public void componentResized(ComponentEvent e) {
-        // Create a new image with the new size
-        BufferedImage newImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = newImage.createGraphics();
-
-        // Fill with white background
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(0, 0, getWidth(), getHeight());
-
-        // Draw the old image if it exists
-        if (image != null) {
-            g2d.drawImage(image, 0, 0, null);
+        if (isInRasterMode && persistentImage != null) {
+            // Create expanded canvas that preserves all existing content
+            int newW = Math.max(getWidth(), persistentImage.getWidth());
+            int newH = Math.max(getHeight(), persistentImage.getHeight());
+            
+            BufferedImage newImage = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = newImage.createGraphics();
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(0, 0, newW, newH);
+            g2d.drawImage(persistentImage, 0, 0, null);
+            g2d.dispose();
+            persistentImage = newImage;
         }
-
-        g2d.dispose();
-        image = newImage;
     }
 
-    @Override
-    public void componentMoved(ComponentEvent e) {
-    }
-
-    @Override
-    public void componentShown(ComponentEvent e) {
-    }
-
-    @Override
-    public void componentHidden(ComponentEvent e) {
-    }
+    @Override public void componentMoved(ComponentEvent e) {}
+    @Override public void componentShown(ComponentEvent e) {}
+    @Override public void componentHidden(ComponentEvent e) {}
 }
