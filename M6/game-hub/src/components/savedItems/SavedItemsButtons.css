@@ -1,0 +1,329 @@
+.saved-items-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Core button styling with fixed dimensions to prevent layout shifts */
+.saved-item-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  
+  /* Fixed dimensions prevent layout shifts */
+  min-width: 90px;
+  height: 36px;
+  
+  /* Smooth hover and focus effects */
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.saved-item-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Subtle animation effect on hover for all buttons */
+.saved-item-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.saved-item-button:hover::before {
+  left: 100%;
+}
+
+/* Success animation for when buttons are activated */
+.saved-item-button.success {
+  animation: successPulse 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
+  100% { transform: scale(1); }
+}
+
+/* Played Games Button - Green theme with checkmark emphasis */
+.saved-item-button.played.active {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+  border-color: #27ae60;
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.saved-item-button.played.inactive {
+  background: rgba(39, 174, 96, 0.1);
+  border-color: #27ae60;
+  color: #27ae60;
+  backdrop-filter: blur(8px);
+}
+
+.saved-item-button.played:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.saved-item-button.played.inactive:hover:not(:disabled) {
+  background: rgba(39, 174, 96, 0.2);
+  border-color: #2ecc71;
+  color: #2ecc71;
+}
+
+/* Queued Games Button - Orange theme with clock emphasis */
+.saved-item-button.queued.active {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  border-color: #f39c12;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+.saved-item-button.queued.inactive {
+  background: rgba(243, 156, 18, 0.1);
+  border-color: #f39c12;
+  color: #f39c12;
+  backdrop-filter: blur(8px);
+}
+
+.saved-item-button.queued:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.saved-item-button.queued.inactive:hover:not(:disabled) {
+  background: rgba(243, 156, 18, 0.2);
+  border-color: #e67e22;
+  color: #e67e22;
+}
+
+/* Disabled state for queued button when game is already played */
+.saved-item-button.queued:disabled {
+  background: rgba(143, 152, 160, 0.1);
+  border-color: #8f98a0;
+  color: #8f98a0;
+  opacity: 0.5;
+}
+
+/* Wishlist Button - Red/pink theme with heart emphasis */
+.saved-item-button.wishlist.active {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  border-color: #e74c3c;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.saved-item-button.wishlist.inactive {
+  background: rgba(231, 76, 60, 0.1);
+  border-color: #e74c3c;
+  color: #e74c3c;
+  backdrop-filter: blur(8px);
+}
+
+.saved-item-button.wishlist:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.saved-item-button.wishlist.inactive:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+/* Icon styling with smooth transitions */
+.button-icon {
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.saved-item-button:hover .button-icon {
+  transform: scale(1.1);
+}
+
+.saved-item-button.active .button-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Loading spinner with consistent sizing */
+.button-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-left-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Compact mode for use in game cards */
+.saved-items-buttons.compact {
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.saved-items-buttons.compact .saved-item-button {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.7rem;
+  min-width: 75px;
+  height: 30px;
+  border-radius: 4px;
+}
+
+.saved-items-buttons.compact .button-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Login prompt styling */
+.login-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(26, 159, 255, 0.08) 0%, rgba(102, 192, 244, 0.04) 100%);
+  border: 2px solid rgba(26, 159, 255, 0.2);
+  border-radius: 12px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+.login-prompt-text {
+  color: #c7d5e0;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.login-prompt-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #1a9fff 0%, #66c0f4 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(26, 159, 255, 0.3);
+}
+
+.login-prompt-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(26, 159, 255, 0.4);
+}
+
+/* State indicator text that appears on hover */
+.button-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  margin-bottom: 0.5rem;
+  z-index: 1000;
+}
+
+.saved-item-button:hover .button-tooltip {
+  opacity: 1;
+}
+
+/* Mobile responsiveness with touch-friendly targets */
+@media (max-width: 768px) {
+  .saved-items-buttons {
+    gap: 0.4rem;
+  }
+
+  .saved-item-button {
+    flex: 1;
+    min-width: 80px;
+    height: 40px; /* Larger touch targets on mobile */
+    font-size: 0.75rem;
+  }
+
+  .saved-items-buttons.compact .saved-item-button {
+    height: 34px;
+    min-width: 70px;
+    font-size: 0.7rem;
+  }
+
+  .login-prompt {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .login-prompt-text {
+    font-size: 0.85rem;
+  }
+
+  /* Remove hover effects on mobile for better performance */
+  .saved-item-button:hover::before {
+    left: -100%;
+  }
+  
+  .button-tooltip {
+    display: none;
+  }
+}
+
+/* High contrast mode support for accessibility */
+@media (prefers-contrast: high) {
+  .saved-item-button {
+    border-width: 3px;
+  }
+  
+  .saved-item-button.active {
+    border-color: currentColor;
+  }
+}
+
+/* Reduced motion support for users who prefer less animation */
+@media (prefers-reduced-motion: reduce) {
+  .saved-item-button {
+    transition: none;
+  }
+  
+  .saved-item-button::before {
+    display: none;
+  }
+  
+  .saved-item-button.success {
+    animation: none;
+  }
+}

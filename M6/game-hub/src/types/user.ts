@@ -1,3 +1,9 @@
+export interface SavedGames {
+  played: number[];
+  queued: number[];
+  wishlist: number[];
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -5,6 +11,7 @@ export interface User {
   lastName: string;
   bio?: string;
   photoURL?: string;
+  savedGames?: SavedGames;
   createdAt: Date;
   updatedAt: Date;
 }

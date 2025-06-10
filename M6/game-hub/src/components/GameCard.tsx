@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import type { Game } from "../types/game";
+import SavedItemsButtons from "./savedItems/SavedItemsButtons";
 import "./GameCard.css";
 
 interface GameCardProps {
@@ -24,8 +25,8 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
     : "Unknown platform";
 
   return (
-    <Link to={`/game/${game.id}`} className="game-card-link">
-      <div className="game-card">
+    <div className="game-card">
+      <Link to={`/game/${game.id}`} className="game-card-link">
         <div className="game-card-image">
           <img
             src={
@@ -51,8 +52,17 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
               ))}
           </div>
         </div>
+      </Link>
+
+      {/* Add saved items buttons at the bottom of the card */}
+      <div className="game-card-actions">
+        <SavedItemsButtons
+          gameId={game.id}
+          compact={true}
+          showLoginPrompt={false}
+        />
       </div>
-    </Link>
+    </div>
   );
 };
 

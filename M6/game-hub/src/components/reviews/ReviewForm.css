@@ -1,0 +1,235 @@
+.review-form {
+  background-color: #1f3747;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid #2a475e;
+}
+
+.review-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #1a9fff;
+  padding-bottom: 0.5rem;
+}
+
+.review-form-title {
+  color: #ffffff;
+  font-size: 1.3rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.close-form-button {
+  background: none;
+  border: none;
+  color: #8f98a0;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-form-button:hover {
+  color: #c7d5e0;
+  background-color: rgba(143, 152, 160, 0.1);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  color: #c7d5e0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-label svg {
+  color: #66c0f4;
+}
+
+.rating-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.star-button {
+  background: none;
+  border: none;
+  color: #8f98a0;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.star-button:hover,
+.star-button.active {
+  color: #ffa500;
+  transform: scale(1.1);
+}
+
+.rating-text {
+  color: #c7d5e0;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+.review-textarea {
+  width: 100%;
+  min-height: 120px;
+  background-color: #2a475e;
+  border: 1px solid #3a6a8c;
+  border-radius: 4px;
+  padding: 0.75rem;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.review-textarea:focus {
+  border-color: #1a9fff;
+  background-color: #1f3747;
+  box-shadow: 0 0 0 2px rgba(26, 159, 255, 0.2);
+}
+
+.review-textarea::placeholder {
+  color: #8f98a0;
+}
+
+.character-count {
+  text-align: right;
+  color: #8f98a0;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.character-count.warning {
+  color: #ffa500;
+}
+
+.character-count.error {
+  color: #e74c3c;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.review-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.review-button.primary {
+  background: linear-gradient(135deg, #1a9fff 0%, #66c0f4 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(26, 159, 255, 0.3);
+}
+
+.review-button.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(26, 159, 255, 0.4);
+}
+
+.review-button.secondary {
+  background-color: transparent;
+  border: 1px solid #8f98a0;
+  color: #8f98a0;
+}
+
+.review-button.secondary:hover:not(:disabled) {
+  background-color: rgba(143, 152, 160, 0.1);
+  color: #c7d5e0;
+  border-color: #c7d5e0;
+}
+
+.review-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-left-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .review-form {
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .review-form-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .close-form-button {
+    align-self: flex-end;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .review-button {
+    width: 100%;
+  }
+}

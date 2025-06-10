@@ -7,7 +7,6 @@ import {
   Monitor,
   Users,
   Trophy,
-  Heart,
   ShoppingCart,
   ExternalLink,
   Loader2,
@@ -27,6 +26,8 @@ import { priceGenerator } from "../utils/priceGenerator";
 import { systemRequirementsGenerator } from "../utils/systemRequirementsGenerator";
 import type { GameDetail, Screenshot, Game } from "../types/game";
 import GameCard from "../components/GameCard";
+import SavedItemsButtons from "../components/savedItems/SavedItemsButtons";
+import ReviewList from "../components/reviews/ReviewList";
 import "./GameDetails.css";
 
 const GameDetails: React.FC = () => {
@@ -37,7 +38,6 @@ const GameDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [similarGamesLoading, setSimilarGamesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isWishlisted, setIsWishlisted] = useState(false);
 
   // New state for pricing and system requirements
   const [gamePrice, setGamePrice] = useState<number>(0);
@@ -386,15 +386,6 @@ const GameDetails: React.FC = () => {
               <ShoppingCart size={16} />
               Add to Cart
             </button>
-            <button
-              className={`action-button secondary-button ${
-                isWishlisted ? "wishlisted" : ""
-              }`}
-              onClick={() => setIsWishlisted(!isWishlisted)}
-            >
-              <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
-              {isWishlisted ? "In Wishlist" : "Add to Wishlist"}
-            </button>
             {game.website && (
               <a
                 href={game.website}
@@ -407,6 +398,9 @@ const GameDetails: React.FC = () => {
               </a>
             )}
           </div>
+
+          {/* Add Saved Items Buttons */}
+          <SavedItemsButtons gameId={game.id} showLoginPrompt={true} />
         </div>
       </div>
 
@@ -433,6 +427,9 @@ const GameDetails: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Reviews Section */}
+      <ReviewList gameId={game.id} gameName={game.name} />
 
       {/* Dynamic System Requirements */}
       {systemRequirements && (
